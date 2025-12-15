@@ -6,11 +6,13 @@ import { pinata } from "@/lib/pinata";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cid: string } }
+  { params }: { params: Promise<{ cid: string }> }
 ) {
   try {
+    const { cid } = await params;
+
     const file = await prisma.file.findUnique({
-      where: { cid: params.cid },
+      where: { cid },
       include: {
         user: { select: { email: true, name: true } },
       },
@@ -35,9 +37,11 @@ export async function GET(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { cid: string } }
+  { params }: { params: Promise<{ cid: string }> }
 ) {
   try {
+    const { cid } = await params;
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
@@ -54,7 +58,7 @@ export async function DELETE(
 
     const file = await prisma.file.findFirst({
       where: {
-        cid: params.cid,
+        cid,
         userId: user.id,
       },
     });
@@ -71,7 +75,7 @@ export async function DELETE(
     });
 
     try {
-      await pinata.unpin([params.cid]);
+      await pinata.unpin([cid]);
     } catch (e) {
       console.warn("Failed to unpin from Pinata, ignoring", e);
     }
