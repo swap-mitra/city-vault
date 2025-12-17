@@ -29,6 +29,21 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+
+      {/* Copyright Footer */}
+      <footer className="absolute bottom-6 text-center">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Designed and developed by{" "}
+          <a
+            href="https://www.linkedin.com/in/swapnilmitra/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+          >
+            Swapnil Mitra
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }

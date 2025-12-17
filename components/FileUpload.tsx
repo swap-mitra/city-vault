@@ -77,7 +77,6 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
                     <span className="font-medium text-blue-400">
                       Click to upload
                     </span>
-                    <span className="text-slate-500"> or drag and drop</span>
                   </>
                 )}
               </div>

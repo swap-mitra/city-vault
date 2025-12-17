@@ -12,8 +12,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+      <div className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <header className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border border-slate-800 rounded-xl bg-slate-900/50 backdrop-blur-sm">
             <div className="space-y-1">
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
                 type="submit"
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-700 hover:bg-slate-800 transition-all"
               >
-                Sign out
+                Sign Out
               </button>
             </form>
           </div>
@@ -43,6 +43,21 @@ export default async function DashboardPage() {
           <FileList />
         </div>
       </div>
+
+      {/* Copyright Footer */}
+      <footer className="py-6 text-center border-t border-slate-800">
+        <p className="text-sm text-slate-500">
+          Designed and developed by{" "}
+          <a
+            href="https://www.linkedin.com/in/swapnilmitra/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          >
+            Swapnil Mitra
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
