@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FileUpload } from "@/components/FileUpload";
-import { FileList } from "@/components/FileList";
+import { VaultDashboardClient } from "@/components/VaultDashboardClient";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -38,13 +37,9 @@ export default async function DashboardPage() {
           </div>
         </header>
 
-        <div className="space-y-8">
-          <FileUpload />
-          <FileList />
-        </div>
+        <VaultDashboardClient />
       </div>
 
-      {/* Copyright Footer */}
       <footer className="py-6 text-center border-t border-slate-800">
         <p className="text-sm text-slate-500">
           Designed and developed by{" "}

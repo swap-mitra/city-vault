@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
@@ -91,7 +91,7 @@ function LoginForm() {
                 <input
                   className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -161,7 +161,7 @@ function LoginForm() {
         {/* Register Link */}
         <div className="text-center">
           <p className="text-sm text-slate-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
               className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
@@ -209,3 +209,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

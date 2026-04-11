@@ -1,22 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+﻿import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/current-user";
+import { getGatewayUrl } from "@/lib/pinata";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const currentUser = await getCurrentUser();
 
-    if (!session?.user?.email) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -24,10 +17,10 @@ export async function GET(request: NextRequest) {
     const filename = searchParams.get("filename");
 
     if (cid) {
-      const file = await prisma.file.findUnique({
-        where: { cid },
-        include: {
-          user: { select: { email: true, name: true } },
+      const file = await prisma.file.findFirst({
+        where: {
+          cid,
+          userId: currentUser.id,
         },
       });
 
@@ -37,11 +30,11 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         ...file,
-        gatewayUrl: `https://${process.env.NEXT_PUBLIC_GATEWAY_URL}/ipfs/${file.cid}`,
+        gatewayUrl: getGatewayUrl(file.cid),
       });
     }
 
-    const where: any = { userId: user.id };
+    const where: Prisma.FileWhereInput = { userId: currentUser.id };
 
     if (filename) {
       where.filename = {
@@ -55,12 +48,12 @@ export async function GET(request: NextRequest) {
       orderBy: { uploadedAt: "desc" },
     });
 
-    const mapped = files.map((f) => ({
-      ...f,
-      gatewayUrl: `https://${process.env.NEXT_PUBLIC_GATEWAY_URL}/ipfs/${f.cid}`,
-    }));
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(
+      files.map((file) => ({
+        ...file,
+        gatewayUrl: getGatewayUrl(file.cid),
+      }))
+    );
   } catch (error) {
     console.error("Files fetch error:", error);
     return NextResponse.json(

@@ -1,17 +1,50 @@
 "use client";
 
 import { useState } from "react";
+import {
+  formatFileSize,
+  MAX_UPLOAD_SIZE_BYTES,
+  UPLOAD_ACCEPT_ATTRIBUTE,
+} from "@/upload-validation";
+import type { VaultNotice } from "@/vault-ui";
 
-export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
+type UploadResult = {
+  cid: string;
+  filename: string;
+  fileId: string;
+  gatewayUrl: string;
+  message?: string;
+};
+
+type FileUploadProps = {
+  onUploaded?: () => void;
+  onNotice?: (notice: VaultNotice) => void;
+};
+
+function noticeClasses(type: VaultNotice["type"]) {
+  if (type === "success") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  }
+
+  if (type === "error") {
+    return "border-red-500/30 bg-red-500/10 text-red-200";
+  }
+
+  return "border-blue-500/30 bg-blue-500/10 text-blue-200";
+}
+
+export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
+  const [status, setStatus] = useState<VaultNotice | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
 
     setUploading(true);
     setResult(null);
+    setStatus(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -22,15 +55,32 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      const data = (await res.json()) as UploadResult & { error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      const notice: VaultNotice = {
+        type: "success",
+        message: data.message || `${file.name} uploaded successfully.`,
+      };
 
       setResult(data);
+      setStatus(notice);
       setFile(null);
       onUploaded?.();
-    } catch (e) {
-      console.error(e);
-      alert("Upload failed");
+      onNotice?.(notice);
+    } catch (error) {
+      const notice: VaultNotice = {
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "Upload failed unexpectedly.",
+      };
+
+      console.error(error);
+      setStatus(notice);
+      onNotice?.(notice);
     } finally {
       setUploading(false);
     }
@@ -38,14 +88,21 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
 
   return (
     <div className="border border-slate-800 rounded-xl bg-slate-900/50 backdrop-blur-sm p-6 space-y-4 shadow-xl">
-      <h2 className="text-lg font-semibold text-slate-100">Upload File</h2>
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold text-slate-100">Upload File</h2>
+        <p className="text-sm text-slate-400">
+          Upload images, PDFs, text, JSON, CSV, or ZIP files up to{" "}
+          {formatFileSize(MAX_UPLOAD_SIZE_BYTES)}.
+        </p>
+      </div>
 
       <div className="space-y-4">
         <div className="relative">
           <input
             id="file-input"
             type="file"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            accept={UPLOAD_ACCEPT_ATTRIBUTE}
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
             className="hidden"
           />
           <label
@@ -73,16 +130,14 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
                     {file.name}
                   </span>
                 ) : (
-                  <>
-                    <span className="font-medium text-blue-400">
-                      Click to upload
-                    </span>
-                  </>
+                  <span className="font-medium text-blue-400">
+                    Click to choose a file
+                  </span>
                 )}
               </div>
               {file && (
                 <p className="text-xs text-slate-500">
-                  {(file.size / 1024).toFixed(1)} KB
+                  {formatFileSize(file.size)}
                 </p>
               )}
             </div>
@@ -124,6 +179,12 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
         </button>
       </div>
 
+      {status && (
+        <div className={`rounded-lg border px-4 py-3 text-sm ${noticeClasses(status.type)}`}>
+          {status.message}
+        </div>
+      )}
+
       {result && (
         <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 space-y-2">
           <div className="flex items-start gap-2">
@@ -141,7 +202,7 @@ export function FileUpload({ onUploaded }: { onUploaded?: () => void }) {
               />
             </svg>
             <div className="flex-1 space-y-2 text-sm">
-              <p className="text-slate-200 font-medium">Upload successful!</p>
+              <p className="text-slate-200 font-medium">Upload details</p>
               <div className="space-y-1 text-slate-400">
                 <p className="break-all">
                   <span className="text-slate-500">CID:</span> {result.cid}
