@@ -11,14 +11,14 @@ type ToastNotice = VaultNotice & {
 
 function noticeClasses(type: VaultNotice["type"]) {
   if (type === "success") {
-    return "border-emerald-500/30 bg-slate-900/95 text-emerald-200";
+    return "border-emerald-400/30 bg-slate-950/90 text-emerald-100 shadow-[0_18px_40px_rgba(16,185,129,0.18)]";
   }
 
   if (type === "error") {
-    return "border-red-500/30 bg-slate-900/95 text-red-200";
+    return "border-red-400/30 bg-slate-950/90 text-red-100 shadow-[0_18px_40px_rgba(248,113,113,0.18)]";
   }
 
-  return "border-blue-500/30 bg-slate-900/95 text-blue-200";
+  return "border-blue-400/30 bg-slate-950/90 text-blue-100 shadow-[0_18px_40px_rgba(79,140,255,0.18)]";
 }
 
 export function VaultDashboardClient() {
@@ -44,13 +44,13 @@ export function VaultDashboardClient() {
 
   return (
     <>
-      <div className="pointer-events-none fixed right-6 top-6 z-50 flex w-full max-w-sm flex-col gap-3">
+      <div className="pointer-events-none fixed right-5 top-5 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="status"
             aria-live="polite"
-            className={`rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${noticeClasses(
+            className={`rounded-2xl border px-4 py-3 text-sm backdrop-blur-xl ${noticeClasses(
               toast.type
             )}`}
           >

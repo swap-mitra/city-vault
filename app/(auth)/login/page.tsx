@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useState, Suspense } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { AuthShell } from "@/components/AuthShell";
 
 function LoginForm() {
   const router = useRouter();
@@ -15,8 +15,8 @@ function LoginForm() {
 
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
 
@@ -38,73 +38,62 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 px-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <svg
-              className="h-10 w-10 text-blue-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-            <h1 className="text-3xl font-bold text-slate-100">City Vault</h1>
-          </div>
-          <h2 className="text-xl font-semibold text-slate-100">Welcome back</h2>
-          <p className="text-sm text-slate-400">
-            Sign in to access your decentralized file vault
+    <AuthShell
+      eyebrow="Access"
+      title="Open your vault and resume file operations."
+      description="Sign in to your workspace to upload, search, inspect, and delete IPFS-backed files with scoped ownership rules."
+      accentLabel="Credential sign-in with private vault access"
+      footerPrompt="Do not have an account yet?"
+      footerHref="/register"
+      footerLabel="Create one"
+    >
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-white">
+            Welcome back
+          </h2>
+          <p className="text-sm leading-7 text-slate-300">
+            Continue where you left off.
           </p>
         </div>
 
-        {/* Form Card */}
-        <div className="border border-slate-800 rounded-xl bg-slate-900/50 backdrop-blur-sm p-8 shadow-xl">
+        <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              {/* Email Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-slate-300">
                   Email
                 </label>
                 <input
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 placeholder-slate-500 focus:border-blue-400/40 focus:outline-none"
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                 />
               </div>
 
-              {/* Password Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-slate-300">
                   Password
                 </label>
                 <input
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 placeholder-slate-500 focus:border-blue-400/40 focus:outline-none"
                   type="password"
                   placeholder="********"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   required
                 />
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="p-3 rounded-lg bg-red-900/20 border border-red-900/50">
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3">
                 <div className="flex items-center gap-2">
                   <svg
-                    className="h-4 w-4 text-red-400 shrink-0"
+                    className="h-4 w-4 shrink-0 text-red-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -113,7 +102,7 @@ function LoginForm() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                     />
                   </svg>
                   <p className="text-sm text-red-400">{error}</p>
@@ -121,16 +110,15 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40"
+              className="w-full rounded-full bg-blue-500 py-3 text-sm font-medium text-white shadow-[0_0_40px_rgba(79,140,255,0.25)] hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg
-                    className="animate-spin h-4 w-4"
+                    className="h-4 w-4 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -142,12 +130,12 @@ function LoginForm() {
                       r="10"
                       stroke="currentColor"
                       strokeWidth="4"
-                    ></circle>
+                    />
                     <path
                       className="opacity-75"
                       fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
+                      d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647Z"
+                    />
                   </svg>
                   Signing in...
                 </span>
@@ -157,21 +145,8 @@ function LoginForm() {
             </button>
           </form>
         </div>
-
-        {/* Register Link */}
-        <div className="text-center">
-          <p className="text-sm text-slate-400">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-            >
-              Create one
-            </Link>
-          </p>
-        </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }
 
@@ -179,29 +154,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-          <div className="text-center">
-            <svg
-              className="animate-spin h-8 w-8 text-blue-500 mx-auto"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          </div>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center text-sm text-slate-400">Loading...</div>
         </div>
       }
     >
@@ -209,4 +163,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

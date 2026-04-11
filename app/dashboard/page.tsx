@@ -11,48 +11,46 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
-      <div className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <header className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border border-slate-800 rounded-xl bg-slate-900/50 backdrop-blur-sm">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold text-slate-100">
-                City Vault Dashboard
-              </h1>
-              <p className="text-sm text-slate-400">
-                Logged in as{" "}
-                <span className="text-slate-300 font-medium">
-                  {session.user.email}
-                </span>
-              </p>
+    <div className="min-h-screen">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <header className="mb-8 rounded-[2rem] border border-white/10 bg-slate-950/70 px-6 py-6 shadow-[0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-xl sm:px-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl space-y-4">
+              <div className="inline-flex items-center gap-3 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-200">
+                <span className="h-2 w-2 rounded-full bg-blue-300" />
+                Active vault
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+                  Manage uploads, ownership, and pinned storage in one workspace.
+                </h1>
+                <p className="max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+                  Your files stay scoped to your account. Upload, inspect, copy
+                  CIDs, and remove entries without breaking shared references.
+                </p>
+              </div>
             </div>
-            <form action="/api/auth/signout" method="post">
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-700 hover:bg-slate-800 transition-all"
-              >
-                Sign Out
-              </button>
-            </form>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
+                Signed in as <span className="font-medium text-white">{session.user.email}</span>
+              </div>
+              <form action="/api/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="rounded-full border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
         </header>
 
-        <VaultDashboardClient />
+        <div className="flex-1">
+          <VaultDashboardClient />
+        </div>
       </div>
-
-      <footer className="py-6 text-center border-t border-slate-800">
-        <p className="text-sm text-slate-500">
-          Designed and developed by{" "}
-          <a
-            href="https://www.linkedin.com/in/swapnilmitra/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-          >
-            Swapnil Mitra
-          </a>
-        </p>
-      </footer>
     </div>
   );
 }
