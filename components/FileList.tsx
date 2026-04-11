@@ -89,7 +89,10 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
       const res = await fetch(`/api/files/${file.cid}`, {
         method: "DELETE",
       });
-      const data = (await res.json()) as { error?: string; message?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        message?: string;
+      };
 
       if (!res.ok) {
         const message = data.error || "Failed to delete file.";
@@ -124,7 +127,7 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
   };
 
   const emptyStateTitle = trimmedSearch
-    ? `No files match “${trimmedSearch}”`
+    ? `No files match "${trimmedSearch}"`
     : "No files uploaded yet";
   const emptyStateDescription = trimmedSearch
     ? "Try another filename or clear the search to view your full vault."
@@ -291,9 +294,9 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
                             </h3>
                             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                               <span>{(file.fileSize / 1024).toFixed(1)} KB</span>
-                              <span>•</span>
+                              <span>|</span>
                               <span>{file.mimeType || "unknown"}</span>
-                              <span>•</span>
+                              <span>|</span>
                               <span>{formatDate(file.uploadedAt)}</span>
                             </div>
                           </div>

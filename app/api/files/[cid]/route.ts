@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/current-user";
 import { getGatewayUrl, getPinataClient } from "@/lib/pinata";
@@ -65,7 +65,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.file.delete({
+    const deletedFile = await prisma.file.delete({
       where: { id: file.id },
     });
 
@@ -73,15 +73,45 @@ export async function DELETE(
       where: { cid },
     });
 
-    if (remainingReferences === 0) {
-      try {
-        await getPinataClient().unpin([cid]);
-      } catch (error) {
-        console.warn("Failed to unpin from Pinata, ignoring", error);
-      }
+    if (remainingReferences > 0) {
+      return NextResponse.json({
+        success: true,
+        unpinnedFromIpfs: false,
+        message:
+          "File deleted from your vault. The IPFS pin remains because another vault entry still references it.",
+      });
     }
 
-    return NextResponse.json({ success: true, message: "File deleted" });
+    try {
+      await getPinataClient().unpin([cid]);
+    } catch (error) {
+      await prisma.file.create({
+        data: {
+          id: deletedFile.id,
+          filename: deletedFile.filename,
+          cid: deletedFile.cid,
+          fileSize: deletedFile.fileSize,
+          mimeType: deletedFile.mimeType,
+          uploadedAt: deletedFile.uploadedAt,
+          userId: deletedFile.userId,
+        },
+      });
+
+      console.error("Unpin error:", error);
+      return NextResponse.json(
+        {
+          error:
+            "Failed to unpin the file from IPFS. Your vault entry was restored.",
+        },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      unpinnedFromIpfs: true,
+      message: "File deleted from your vault and unpinned from IPFS.",
+    });
   } catch (error) {
     console.error("Delete error:", error);
     return NextResponse.json(

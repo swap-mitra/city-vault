@@ -9,10 +9,6 @@ import {
 import type { VaultNotice } from "@/vault-ui";
 
 type UploadResult = {
-  cid: string;
-  filename: string;
-  fileId: string;
-  gatewayUrl: string;
   message?: string;
 };
 
@@ -21,30 +17,14 @@ type FileUploadProps = {
   onNotice?: (notice: VaultNotice) => void;
 };
 
-function noticeClasses(type: VaultNotice["type"]) {
-  if (type === "success") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
-  }
-
-  if (type === "error") {
-    return "border-red-500/30 bg-red-500/10 text-red-200";
-  }
-
-  return "border-blue-500/30 bg-blue-500/10 text-blue-200";
-}
-
 export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<UploadResult | null>(null);
-  const [status, setStatus] = useState<VaultNotice | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
 
     setUploading(true);
-    setResult(null);
-    setStatus(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -61,26 +41,19 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
         throw new Error(data.error || "Upload failed");
       }
 
-      const notice: VaultNotice = {
+      onUploaded?.();
+      onNotice?.({
         type: "success",
         message: data.message || `${file.name} uploaded successfully.`,
-      };
-
-      setResult(data);
-      setStatus(notice);
+      });
       setFile(null);
-      onUploaded?.();
-      onNotice?.(notice);
     } catch (error) {
-      const notice: VaultNotice = {
+      console.error(error);
+      onNotice?.({
         type: "error",
         message:
           error instanceof Error ? error.message : "Upload failed unexpectedly.",
-      };
-
-      console.error(error);
-      setStatus(notice);
-      onNotice?.(notice);
+      });
     } finally {
       setUploading(false);
     }
@@ -178,65 +151,6 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
           )}
         </button>
       </div>
-
-      {status && (
-        <div className={`rounded-lg border px-4 py-3 text-sm ${noticeClasses(status.type)}`}>
-          {status.message}
-        </div>
-      )}
-
-      {result && (
-        <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 space-y-2">
-          <div className="flex items-start gap-2">
-            <svg
-              className="h-5 w-5 text-green-500 mt-0.5 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="flex-1 space-y-2 text-sm">
-              <p className="text-slate-200 font-medium">Upload details</p>
-              <div className="space-y-1 text-slate-400">
-                <p className="break-all">
-                  <span className="text-slate-500">CID:</span> {result.cid}
-                </p>
-                <p>
-                  <span className="text-slate-500">Filename:</span>{" "}
-                  {result.filename}
-                </p>
-              </div>
-              <a
-                href={result.gatewayUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                View on IPFS
-                <svg
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
