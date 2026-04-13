@@ -182,95 +182,68 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
     ? `No files match "${trimmedSearch}"`
     : "No files uploaded yet";
   const emptyStateDescription = trimmedSearch
-    ? "Try another filename or clear the search to view your full vault."
-    : "Upload your first file to get started.";
+    ? "Try another filename or clear the filter to see the whole vault."
+    : "Upload your first file to put the vault in motion.";
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/70 p-6 shadow-[0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-xl sm:p-8">
+    <section className="brutal-panel motion-rise overflow-hidden p-6 sm:p-8" style={{ animationDelay: "120ms" }}>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-200/80">
-              Files
+          <div className="space-y-3">
+            <p className="section-kicker">
+              <span className="h-2.5 w-2.5 bg-[var(--shadow)]" />
+              File command center
             </p>
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
-              Search and manage the files currently pinned to your vault.
+            <h2 className="display-font max-w-4xl text-5xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-6xl">
+              Search. inspect. delete.
             </h2>
-            <p className="max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              Use <span className="rounded border border-white/10 px-1.5 py-0.5 text-xs text-slate-200">/</span>{" "}
-              to focus search. Delete removes the database entry and only unpins
-              when no remaining vault reference exists.
+            <p className="max-w-2xl text-base leading-8 text-[var(--muted)] sm:text-lg">
+              Press <span className="brutal-chip mx-1 inline-flex align-middle">/</span> to focus
+              search. Deleting removes the database entry first and only unpins when no remaining
+              vault reference exists.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                Total files
-              </p>
-              <p className="mt-1 text-xl font-semibold text-white">{files.length}</p>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="brutal-metric">
+              <p className="metric-label">Files</p>
+              <p className="metric-value text-[var(--accent)]">{files.length}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                Storage
-              </p>
-              <p className="mt-1 text-xl font-semibold text-white">
-                {formatFileSize(totalBytes)}
-              </p>
+            <div className="brutal-metric">
+              <p className="metric-label">Storage</p>
+              <p className="metric-value text-[var(--signal)]">{formatFileSize(totalBytes)}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                Images
-              </p>
-              <p className="mt-1 text-xl font-semibold text-white">{imageCount}</p>
+            <div className="brutal-metric">
+              <p className="metric-label">Images</p>
+              <p className="metric-value text-[var(--success)]">{imageCount}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                Latest upload
-              </p>
-              <p className="mt-1 text-sm font-medium text-white">
-                {latestUpload ? formatDate(latestUpload.uploadedAt) : "None yet"}
+            <div className="brutal-metric">
+              <p className="metric-label">Latest</p>
+              <p className="display-font text-3xl leading-none tracking-[0.08em] text-[var(--ink)]">
+                {latestUpload ? formatDate(latestUpload.uploadedAt) : "None"}
               </p>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 hover:border-white/20 hover:bg-white/5 lg:self-auto"
-        >
-          <svg
-            className={`h-5 w-5 transition-transform duration-200 ${
-              isCollapsed ? "-rotate-90" : ""
-            }`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+        <button onClick={() => setIsCollapsed(!isCollapsed)} className="brutal-button brutal-button--ghost self-start lg:self-auto">
           {isCollapsed ? "Expand list" : "Collapse list"}
         </button>
       </div>
 
       {!isCollapsed && (
         <>
-          <div className="mt-8 flex gap-3">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <input
                 ref={searchInputRef}
-                placeholder="Search files by name..."
+                placeholder="Search files by name"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="w-full rounded-full border border-white/10 bg-white/[0.03] px-4 py-3 pl-11 text-sm text-slate-200 placeholder-slate-500 focus:border-blue-400/40 focus:outline-none"
+                className="brutal-input pl-12"
               />
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+                className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted)]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -278,7 +251,7 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.2}
                   d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
                 />
               </svg>
@@ -291,14 +264,14 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
                   void loadFiles(undefined);
                 }
               }}
-              className="rounded-full border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
+              className="brutal-button brutal-button--ghost"
             >
               {trimmedSearch ? "Clear" : "Refresh"}
             </button>
           </div>
 
           {listError && (
-            <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="brutal-callout brutal-callout--error mt-4 text-sm font-semibold leading-7">
               {listError}
             </div>
           )}
@@ -308,20 +281,17 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
               {Array.from({ length: 3 }).map((_, index) => (
                 <div
                   key={`skeleton-${index}`}
-                  className="animate-pulse rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-5"
+                  className="brutal-panel animate-pulse p-5"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex flex-1 items-start gap-4">
-                      <div className="h-11 w-11 rounded-2xl bg-white/8" />
-                      <div className="flex-1 space-y-3">
-                        <div className="h-4 w-48 rounded-full bg-white/8" />
-                        <div className="h-3 w-64 rounded-full bg-white/8" />
-                        <div className="h-3 w-full rounded-full bg-white/8" />
-                      </div>
+                  <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+                    <div className="space-y-3">
+                      <div className="h-5 w-48 bg-white/10" />
+                      <div className="h-4 w-64 bg-white/10" />
+                      <div className="h-4 w-full bg-white/10" />
                     </div>
                     <div className="flex gap-2">
-                      <div className="h-10 w-20 rounded-full bg-white/8" />
-                      <div className="h-10 w-20 rounded-full bg-white/8" />
+                      <div className="h-12 w-24 bg-white/10" />
+                      <div className="h-12 w-24 bg-white/10" />
                     </div>
                   </div>
                 </div>
@@ -330,122 +300,87 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
           )}
 
           {!loading && files.length === 0 && !listError && (
-            <div className="mt-6 rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.03] px-6 py-16 text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-slate-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
-                />
-              </svg>
-              <p className="mt-4 text-sm text-slate-300">{emptyStateTitle}</p>
-              <p className="mt-1 text-xs text-slate-500">{emptyStateDescription}</p>
+            <div className="brutal-panel brutal-grid mt-6 px-6 py-16 text-center">
+              <p className="display-font text-5xl leading-none tracking-[0.08em] text-[var(--ink)]">
+                {emptyStateTitle}
+              </p>
+              <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--muted)] sm:text-base">
+                {emptyStateDescription}
+              </p>
               {trimmedSearch && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 hover:border-white/20 hover:bg-white/5"
-                >
-                  Clear search
-                </button>
+                <div className="mt-6">
+                  <button onClick={() => setSearch("")} className="brutal-button brutal-button--ghost">
+                    Clear search
+                  </button>
+                </div>
               )}
             </div>
           )}
 
           {!loading && files.length > 0 && (
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 space-y-4">
               {files.map((file) => {
                 const isConfirming = confirmingCid === file.cid;
                 const isDeleting = deletingCid === file.cid;
 
                 return (
-                  <div
-                    key={file.id}
-                    className="group rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm hover:border-white/20 hover:bg-white/[0.05]"
-                  >
-                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                      <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 text-slate-300">
+                  <article key={file.id} className="brutal-panel p-5 transition-transform duration-200 hover:-translate-y-1">
+                    <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center border-[3px] border-[var(--line)] bg-[color-mix(in_oklch,var(--paper)_10%,var(--surface-1))] text-[var(--accent)] shadow-[4px_4px_0_var(--shadow)]">
                             {renderFileGlyph(file.mimeType)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-base font-medium text-white">
+                            <h3 className="display-font break-words text-4xl leading-none tracking-[0.08em] text-[var(--ink)]">
                               {file.filename}
                             </h3>
-                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)] sm:gap-3">
                               <span>{formatFileSize(file.fileSize)}</span>
-                              <span>•</span>
                               <span>{file.mimeType || "unknown"}</span>
-                              <span>•</span>
                               <span>{formatDate(file.uploadedAt)}</span>
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="min-w-0 break-all font-mono text-xs text-slate-400">
-                              {file.cid}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => void handleCopyCid(file.cid)}
-                              className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
-                            >
-                              {copiedCid === file.cid ? "Copied" : "Copy CID"}
-                            </button>
-                          </div>
+
+                        <div className="brutal-callout">
+                          <p className="metric-label">CID</p>
+                          <p className="mt-2 break-all text-sm font-semibold leading-7 text-[var(--ink)]">
+                            {file.cid}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <a
-                          href={file.gatewayUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
+                      <div className="flex flex-wrap items-center gap-3 xl:max-w-[17rem] xl:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => void handleCopyCid(file.cid)}
+                          className="brutal-button brutal-button--ghost"
                         >
-                          View
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14"
-                            />
-                          </svg>
+                          {copiedCid === file.cid ? "Copied" : "Copy CID"}
+                        </button>
+
+                        <a href={file.gatewayUrl} target="_blank" rel="noopener noreferrer" className="brutal-button brutal-button--signal">
+                          View file
                         </a>
 
                         {!isConfirming ? (
-                          <button
-                            onClick={() => setConfirmingCid(file.cid)}
-                            className="rounded-full border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-200 hover:border-red-400/30 hover:bg-red-500/15"
-                          >
+                          <button onClick={() => setConfirmingCid(file.cid)} className="brutal-button brutal-button--danger">
                             Delete
                           </button>
                         ) : (
-                          <div className="flex items-center gap-2">
+                          <div className="grid w-full gap-3">
                             <button
                               onClick={() => void handleDelete(file)}
                               disabled={isDeleting}
-                              className="rounded-full bg-red-500 px-4 py-2 text-xs font-medium text-white hover:bg-red-400 disabled:opacity-60"
+                              className="brutal-button brutal-button--danger"
                             >
-                              {isDeleting ? "Deleting..." : "Confirm"}
+                              {isDeleting ? "Deleting" : "Confirm delete"}
                             </button>
                             <button
                               onClick={() => setConfirmingCid(null)}
                               disabled={isDeleting}
-                              className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
+                              className="brutal-button brutal-button--ghost"
                             >
                               Cancel
                             </button>
@@ -453,7 +388,7 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
@@ -467,11 +402,11 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
 function renderFileGlyph(mimeType: string | null) {
   if (mimeType?.startsWith("image/")) {
     return (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={1.8}
+          strokeWidth={2}
           d="M4 16 8.586 11.414a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14m-2 6H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2ZM8.5 9.5h.01"
         />
       </svg>
@@ -480,11 +415,11 @@ function renderFileGlyph(mimeType: string | null) {
 
   if (mimeType === "application/pdf") {
     return (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={1.8}
+          strokeWidth={2}
           d="M7 3h6l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm6 0v4h4M8.5 13h2.25a1.25 1.25 0 1 0 0-2.5H8.5V13Zm0 0v2.5m4.25-5v5h1.5a1.5 1.5 0 0 0 0-3h-1.5m0 0V10.5M18 10.5h-2v5"
         />
       </svg>
@@ -493,11 +428,11 @@ function renderFileGlyph(mimeType: string | null) {
 
   if (mimeType === "application/zip" || mimeType === "application/x-zip-compressed") {
     return (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={1.8}
+          strokeWidth={2}
           d="M8 3h6l4 4v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm6 0v4h4M10 8h2m-2 3h2m-2 3h2m-2 3h4"
         />
       </svg>
@@ -505,11 +440,11 @@ function renderFileGlyph(mimeType: string | null) {
   }
 
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={1.8}
+        strokeWidth={2}
         d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
       />
     </svg>

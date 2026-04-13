@@ -11,14 +11,14 @@ type ToastNotice = VaultNotice & {
 
 function noticeClasses(type: VaultNotice["type"]) {
   if (type === "success") {
-    return "border-emerald-400/30 bg-slate-950/90 text-emerald-100 shadow-[0_18px_40px_rgba(16,185,129,0.18)]";
+    return "border-[var(--success)] bg-[color-mix(in_oklch,var(--success)_18%,var(--surface-0))] text-[var(--ink)]";
   }
 
   if (type === "error") {
-    return "border-red-400/30 bg-slate-950/90 text-red-100 shadow-[0_18px_40px_rgba(248,113,113,0.18)]";
+    return "border-[var(--danger)] bg-[color-mix(in_oklch,var(--danger)_20%,var(--surface-0))] text-[var(--ink)]";
   }
 
-  return "border-blue-400/30 bg-slate-950/90 text-blue-100 shadow-[0_18px_40px_rgba(79,140,255,0.18)]";
+  return "border-[var(--signal)] bg-[color-mix(in_oklch,var(--signal)_20%,var(--surface-0))] text-[var(--ink)]";
 }
 
 export function VaultDashboardClient() {
@@ -44,13 +44,13 @@ export function VaultDashboardClient() {
 
   return (
     <>
-      <div className="pointer-events-none fixed right-5 top-5 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
+      <div className="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="status"
             aria-live="polite"
-            className={`rounded-2xl border px-4 py-3 text-sm backdrop-blur-xl ${noticeClasses(
+            className={`pointer-events-auto border-[3px] px-4 py-3 text-sm font-semibold uppercase tracking-[0.08em] shadow-[8px_8px_0_var(--shadow)] ${noticeClasses(
               toast.type
             )}`}
           >
@@ -59,7 +59,7 @@ export function VaultDashboardClient() {
         ))}
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <FileUpload onUploaded={handleUploaded} onNotice={handleNotice} />
         <FileList refreshToken={refreshToken} onNotice={handleNotice} />
       </div>

@@ -11,46 +11,54 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-8 rounded-[2rem] border border-white/10 bg-slate-950/70 px-6 py-6 shadow-[0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-xl sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-3 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-200">
-                <span className="h-2 w-2 rounded-full bg-blue-300" />
-                Active vault
+    <main className="px-4 sm:px-6 lg:px-8">
+      <div className="vault-shell page-stack">
+        <header className="brutal-panel brutal-panel--paper motion-rise p-6 sm:p-8">
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-end">
+            <div className="space-y-5">
+              <div className="section-kicker">
+                <span className="h-2.5 w-2.5 bg-[var(--shadow)]" />
+                Active vault workspace
               </div>
-              <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
-                  Manage uploads, ownership, and pinned storage in one workspace.
+              <div className="space-y-4">
+                <h1 className="display-font text-6xl leading-none tracking-[0.08em] text-[var(--shadow)] sm:text-7xl">
+                  Own the file flow.
                 </h1>
-                <p className="max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                  Your files stay scoped to your account. Upload, inspect, copy
-                  CIDs, and remove entries without breaking shared references.
+                <p className="max-w-2xl text-base leading-8 text-[var(--shadow)]/84 sm:text-lg">
+                  Upload new assets, inspect CID history, and delete records without breaking
+                  shared references. The workspace stays direct, searchable, and scoped to you.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
-                Signed in as <span className="font-medium text-white">{session.user.email}</span>
+            <div className="grid gap-4">
+              <div className="brutal-panel border-[var(--shadow)] bg-[color-mix(in_oklch,var(--paper)_28%,var(--surface-1))] p-5 text-[var(--shadow)] shadow-[10px_10px_0_var(--shadow)]">
+                <p className="metric-label text-[color-mix(in_oklch,var(--shadow)_72%,var(--paper))]">
+                  Signed in
+                </p>
+                <p className="mt-2 break-all text-lg font-bold leading-7">
+                  {session.user.email}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-[var(--shadow)]/76">
+                  Your vault actions are isolated from every other account.
+                </p>
               </div>
-              <form action="/api/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="rounded-full border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 hover:border-white/20 hover:bg-white/5"
-                >
-                  Sign out
-                </button>
-              </form>
+
+              <div className="flex flex-wrap gap-3">
+                <form action="/api/auth/signout" method="post" className="w-full sm:w-auto">
+                  <button type="submit" className="brutal-button brutal-button--ghost w-full sm:w-auto">
+                    Sign out
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1">
+        <section className="motion-rise" style={{ animationDelay: "80ms" }}>
           <VaultDashboardClient />
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
