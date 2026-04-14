@@ -176,7 +176,7 @@ select {
 }
 
 .brutal-panel--paper {
-  background: color-mix(in oklch, var(--paper) 14%, var(--surface-1));
+  background: color-mix(in oklch, var(--paper) 20%, var(--surface-1));
 }
 
 .brutal-panel--accent {
@@ -298,6 +298,14 @@ select {
 
 .muted-copy {
   color: color-mix(in oklch, var(--muted) 92%, var(--line));
+}
+
+.paper-copy {
+  color: var(--ink);
+}
+
+.paper-muted {
+  color: color-mix(in oklch, var(--ink) 72%, var(--muted));
 }
 
 .command-strip {

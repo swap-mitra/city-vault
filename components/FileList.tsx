@@ -182,8 +182,8 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
     ? `No files match "${trimmedSearch}"`
     : "No files uploaded yet";
   const emptyStateDescription = trimmedSearch
-    ? "Try another filename or clear the filter to see the whole vault."
-    : "Upload your first file to put the vault in motion.";
+    ? "Try another filename."
+    : "Upload your first file.";
 
   return (
     <section className="brutal-panel motion-rise overflow-hidden p-6 sm:p-8" style={{ animationDelay: "120ms" }}>
@@ -197,10 +197,8 @@ export function FileList({ refreshToken = 0, onNotice }: FileListProps) {
             <h2 className="display-font max-w-4xl text-5xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-6xl">
               Search. inspect. delete.
             </h2>
-            <p className="max-w-2xl text-base leading-8 text-[var(--muted)] sm:text-lg">
-              Press <span className="brutal-chip mx-1 inline-flex align-middle">/</span> to focus
-              search. Deleting removes the database entry first and only unpins when no remaining
-              vault reference exists.
+            <p className="max-w-xl text-base leading-8 text-[var(--muted)] sm:text-lg">
+              Press <span className="brutal-chip mx-1 inline-flex align-middle">/</span> to search.
             </p>
           </div>
 

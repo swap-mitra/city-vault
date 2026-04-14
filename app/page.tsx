@@ -1,28 +1,16 @@
 import Link from "next/link";
 
 const highlights = [
-  {
-    label: "Ownership",
-    value: "Per-user control",
-    detail: "Every file view and delete action stays scoped to the active vault owner.",
-  },
-  {
-    label: "Storage",
-    value: "Pinned on IPFS",
-    detail: "Uploads land on decentralized storage while metadata stays queryable in one place.",
-  },
-  {
-    label: "Cleanup",
-    value: "No blind unpin",
-    detail: "Shared references survive until the last vault record disappears.",
-  },
+  { label: "Ownership", value: "Yours only", detail: "Scoped by account." },
+  { label: "Storage", value: "IPFS pinned", detail: "Stored once, tracked cleanly." },
+  { label: "Cleanup", value: "Safe delete", detail: "Unpins only when it should." },
 ];
 
 const boardRows = [
-  "UPLOAD / select local file",
-  "TRACK / keep filename, type, size, timestamp",
-  "SEARCH / hit slash and filter instantly",
-  "DELETE / remove record, unpin only when safe",
+  "Upload file",
+  "Track metadata",
+  "Search fast",
+  "Delete safely",
 ];
 
 export default function HomePage() {
@@ -47,7 +35,7 @@ export default function HomePage() {
                   City Vault
                 </p>
                 <p className="mt-1 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Decentralized file operations with an urban edge
+                  Bold IPFS file control
                 </p>
               </div>
             </div>
@@ -65,42 +53,38 @@ export default function HomePage() {
 
         <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch">
           <article className="brutal-panel brutal-panel--paper motion-rise p-6 sm:p-8" style={{ animationDelay: "60ms" }}>
-            <div className="space-y-6">
+            <div className="space-y-6 paper-copy">
               <div className="section-kicker">
                 <span className="h-2.5 w-2.5 bg-[var(--shadow)]" />
-                Built for people who move files with intent
+                Private file motion
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <h1 className="display-headline max-w-4xl text-[var(--ink)]">
-                  Kill the sleepy storage dashboard.
+                  Store files without the dead dashboard feel.
                 </h1>
-                <p className="max-w-2xl text-base leading-8 text-[var(--shadow)]/88 sm:text-lg">
-                  City Vault turns IPFS file handling into a sharp, high-contrast workspace.
-                  Upload, inspect, search, and remove files without drifting through generic cards,
-                  weak hierarchy, or enterprise wallpaper.
+                <p className="max-w-xl text-base leading-8 paper-muted sm:text-lg">
+                  Upload, search, and clean up IPFS-backed files in one sharp workspace.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4">
                 <Link href="/register" className="brutal-button min-w-48">
-                  Open your vault
+                  Open vault
                 </Link>
                 <Link href="/login" className="brutal-button brutal-button--ghost min-w-48">
-                  Resume session
+                  Resume
                 </Link>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
                 {highlights.map((item) => (
-                  <div key={item.label} className="brutal-metric bg-[color-mix(in_oklch,var(--paper)_25%,var(--surface-1))] text-[var(--shadow)]">
-                    <p className="metric-label text-[color-mix(in_oklch,var(--shadow)_70%,var(--paper))]">
-                      {item.label}
-                    </p>
+                  <div key={item.label} className="brutal-metric bg-[color-mix(in_oklch,var(--paper)_18%,var(--surface-1))] text-[var(--ink)]">
+                    <p className="metric-label paper-muted">{item.label}</p>
                     <p className="display-font text-3xl leading-none tracking-[0.08em] uppercase">
                       {item.value}
                     </p>
-                    <p className="text-sm leading-6 text-[var(--shadow)]/82">{item.detail}</p>
+                    <p className="text-sm leading-6 paper-muted">{item.detail}</p>
                   </div>
                 ))}
               </div>
@@ -147,17 +131,17 @@ export default function HomePage() {
                   Scoped
                 </p>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  Files belong to the logged-in user, not the whole room.
+                  Account-owned files.
                 </p>
               </article>
 
               <article className="brutal-panel motion-rise p-5" style={{ animationDelay: "220ms" }}>
-                <p className="metric-label">Rhythm</p>
+                <p className="metric-label">Pace</p>
                 <p className="display-font mt-2 text-5xl leading-none tracking-[0.08em] text-[var(--ink)]">
                   Fast
                 </p>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  Search, copy CIDs, and clean up entries without leaving the page.
+                  Search and cleanup stay on one screen.
                 </p>
               </article>
             </div>
@@ -165,7 +149,7 @@ export default function HomePage() {
         </section>
 
         <footer className="brutal-panel motion-rise flex flex-col gap-4 px-5 py-4 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: "260ms" }}>
-          <p>Dark-first, hard-edged, and built for actual file movement.</p>
+          <p>Built for direct file control.</p>
           <p>
             Designed and developed by{" "}
             <a

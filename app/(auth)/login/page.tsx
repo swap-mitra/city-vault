@@ -40,9 +40,9 @@ function LoginForm() {
   return (
     <AuthShell
       eyebrow="Access"
-      title="Open your vault and get moving."
-      description="Sign back in to upload, search, inspect, and delete IPFS-backed files with scoped ownership rules."
-      accentLabel="Credential sign-in with a direct, high-contrast workspace"
+      title="Open your vault."
+      description="Sign in and get back to your files."
+      accentLabel="Fast sign-in for a focused file workspace"
       footerPrompt="Need an account instead?"
       footerHref="/register"
       footerLabel="Create one"
@@ -52,9 +52,6 @@ function LoginForm() {
           <h2 className="display-font text-5xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-6xl">
             Welcome back
           </h2>
-          <p className="text-sm leading-7 text-[var(--muted)] sm:text-base">
-            Pick up the file flow exactly where you left it.
-          </p>
         </div>
 
         <div className="space-y-5">

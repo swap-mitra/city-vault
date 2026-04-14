@@ -14,11 +14,7 @@ type AuthShellProps = {
   footerLabel: string;
 };
 
-const utilityPoints = [
-  "Private metadata attached to your own account",
-  "Direct IPFS retrieval and CID copy workflows",
-  "Cleanup logic that respects shared file references",
-];
+const utilityPoints = ["Private ownership", "Direct CID access", "Safe cleanup"];
 
 export function AuthShell({
   title,
@@ -35,7 +31,7 @@ export function AuthShell({
       <div className="vault-shell page-stack justify-center">
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
           <section className="brutal-panel brutal-panel--paper brutal-grid motion-rise flex flex-col justify-between gap-10 p-6 sm:p-8">
-            <div className="space-y-8">
+            <div className="space-y-8 paper-copy">
               <Link href="/" className="flex w-fit items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center border-[3px] border-[var(--shadow)] bg-[var(--accent)] text-[var(--shadow)] shadow-[6px_6px_0_var(--shadow)]">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,11 +44,11 @@ export function AuthShell({
                   </svg>
                 </div>
                 <div>
-                  <p className="display-font text-4xl leading-none tracking-[0.08em] text-[var(--shadow)]">
+                  <p className="display-font text-4xl leading-none tracking-[0.08em] text-[var(--ink)]">
                     City Vault
                   </p>
-                  <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--shadow)]/76">
-                    IPFS workspace for direct file movement
+                  <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] paper-muted">
+                    IPFS workspace
                   </p>
                 </div>
               </Link>
@@ -62,36 +58,28 @@ export function AuthShell({
                   <span className="h-2.5 w-2.5 bg-[var(--shadow)]" />
                   {eyebrow}
                 </p>
-                <div className="space-y-4">
-                  <h1 className="display-font text-6xl leading-none tracking-[0.08em] text-[var(--shadow)] sm:text-7xl">
+                <div className="space-y-3">
+                  <h1 className="display-font text-6xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-7xl">
                     {title}
                   </h1>
-                  <p className="max-w-xl text-base leading-8 text-[var(--shadow)]/84 sm:text-lg">
+                  <p className="max-w-xl text-base leading-8 paper-muted sm:text-lg">
                     {description}
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                {utilityPoints.map((point, index) => (
-                  <div
-                    key={point}
-                    className="brutal-metric border-[var(--shadow)] bg-[color-mix(in_oklch,var(--paper)_22%,var(--surface-1))] text-[var(--shadow)]"
-                  >
-                    <p className="metric-label text-[color-mix(in_oklch,var(--shadow)_70%,var(--paper))]">
-                      0{index + 1}
-                    </p>
+                {utilityPoints.map((point) => (
+                  <div key={point} className="brutal-metric bg-[color-mix(in_oklch,var(--paper)_18%,var(--surface-1))] text-[var(--ink)]">
                     <p className="text-sm font-bold leading-6">{point}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="brutal-panel border-[var(--shadow)] bg-[color-mix(in_oklch,var(--paper)_35%,var(--surface-1))] p-5 text-[var(--shadow)] shadow-[10px_10px_0_var(--shadow)]">
-              <p className="metric-label text-[color-mix(in_oklch,var(--shadow)_74%,var(--paper))]">
-                Why this feels different
-              </p>
-              <p className="mt-3 text-base font-bold leading-7">{accentLabel}</p>
+            <div className="brutal-panel bg-[color-mix(in_oklch,var(--paper)_18%,var(--surface-1))] p-5 text-[var(--ink)]">
+              <p className="metric-label">Core idea</p>
+              <p className="mt-3 text-base font-bold leading-7 paper-muted">{accentLabel}</p>
             </div>
           </section>
 

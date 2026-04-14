@@ -95,9 +95,8 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
               <h2 className="display-font text-5xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-6xl">
                 Drop it in.
               </h2>
-              <p className="max-w-2xl text-base leading-8 text-[var(--muted)] sm:text-lg">
-                The upload surface is blunt by design. Bring in a supported file, validate it fast,
-                then push it into your vault without opening another screen.
+              <p className="max-w-xl text-base leading-8 text-[var(--muted)] sm:text-lg">
+                Stage a file and push it straight into the vault.
               </p>
             </div>
           </div>
@@ -136,11 +135,10 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
 
               <div className="space-y-2">
                 <h3 className="display-font text-4xl leading-none tracking-[0.08em] text-[var(--ink)]">
-                  Drag a file here or hit browse.
+                  Drag here or browse.
                 </h3>
                 <p className="text-sm leading-7 text-[var(--muted)] sm:text-base">
-                  Max size {formatFileSize(MAX_UPLOAD_SIZE_BYTES)}. Duplicate uploads stay scoped to
-                  your own vault entry instead of leaking across users.
+                  Max size {formatFileSize(MAX_UPLOAD_SIZE_BYTES)}.
                 </p>
               </div>
 
@@ -164,17 +162,17 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
             className="hidden"
           />
 
-          <div className="space-y-5">
+          <div className="space-y-5 paper-copy">
             <div>
               <p className="metric-label">Selected file</p>
-              <div className="mt-3 brutal-panel border-[var(--shadow)] bg-[color-mix(in_oklch,var(--paper)_22%,var(--surface-1))] p-4 text-[var(--shadow)] shadow-[8px_8px_0_var(--shadow)]">
+              <div className="mt-3 brutal-panel bg-[color-mix(in_oklch,var(--paper)_18%,var(--surface-1))] p-4 text-[var(--ink)]">
                 {file ? (
                   <div className="space-y-3">
                     <div>
                       <p className="display-font break-all text-4xl leading-none tracking-[0.08em]">
                         {file.name}
                       </p>
-                      <p className="mt-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--shadow)]/72">
+                      <p className="mt-3 text-sm font-bold uppercase tracking-[0.08em] paper-muted">
                         {file.type || "Unknown type"} / {formatFileSize(file.size)}
                       </p>
                     </div>
@@ -192,10 +190,7 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
                     <p className="display-font text-4xl leading-none tracking-[0.08em]">
                       Waiting
                     </p>
-                    <p className="text-sm leading-7 text-[var(--shadow)]/78">
-                      No file is staged yet. Pick one local file and the vault will validate the same
-                      rules the server enforces.
-                    </p>
+                    <p className="text-sm leading-7 paper-muted">Pick a local file to stage it.</p>
                   </div>
                 )}
               </div>
@@ -211,10 +206,9 @@ export function FileUpload({ onUploaded, onNotice }: FileUploadProps) {
             </div>
 
             <div className="brutal-callout">
-              <p className="metric-label">Validation stack</p>
+              <p className="metric-label">Checks</p>
               <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Size, type, ownership, and duplicate CID handling are all checked before metadata is
-                committed. The UI stays loud, the rules stay strict.
+                Size, type, ownership, and CID handling are validated before save.
               </p>
             </div>
           </div>

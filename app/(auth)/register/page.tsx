@@ -42,9 +42,9 @@ export default function RegisterPage() {
   return (
     <AuthShell
       eyebrow="Create account"
-      title="Build your own vault."
-      description="Registration stays simple. Once you are inside, the workspace is ready for uploads, metadata tracking, and controlled cleanup."
-      accentLabel="Account creation without the usual soft, generic onboarding shell"
+      title="Build your vault."
+      description="Create an account and start uploading."
+      accentLabel="Simple onboarding for private file control"
       footerPrompt="Already registered?"
       footerHref="/login"
       footerLabel="Sign in"
@@ -54,9 +54,6 @@ export default function RegisterPage() {
           <h2 className="display-font text-5xl leading-none tracking-[0.08em] text-[var(--ink)] sm:text-6xl">
             Create account
           </h2>
-          <p className="text-sm leading-7 text-[var(--muted)] sm:text-base">
-            Start with a single login and let the rest stay operational.
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -109,10 +106,6 @@ export default function RegisterPage() {
           <button type="submit" disabled={loading} className="brutal-button w-full">
             {loading ? "Creating account" : "Create account"}
           </button>
-
-          <div className="brutal-callout text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
-            By creating an account, you accept the standard usage and privacy terms for this workspace.
-          </div>
         </form>
       </div>
     </AuthShell>
