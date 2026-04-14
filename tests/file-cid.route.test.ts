@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   prismaFileDelete: vi.fn(),
   prismaFileCreate: vi.fn(),
   prismaFileCount: vi.fn(),
+  prismaAuditCreate: vi.fn(),
   unpin: vi.fn(),
   getGatewayUrl: vi.fn((cid: string) => `https://gateway.test/ipfs/${cid}`),
 }));
@@ -21,6 +22,9 @@ vi.mock("@/lib/prisma", () => ({
       delete: mocks.prismaFileDelete,
       create: mocks.prismaFileCreate,
       count: mocks.prismaFileCount,
+    },
+    auditEvent: {
+      create: mocks.prismaAuditCreate,
     },
   },
 }));
@@ -41,12 +45,25 @@ describe("file CID route", () => {
     mocks.prismaFileDelete.mockReset();
     mocks.prismaFileCreate.mockReset();
     mocks.prismaFileCount.mockReset();
+    mocks.prismaAuditCreate.mockReset();
     mocks.unpin.mockReset();
     mocks.getGatewayUrl.mockClear();
+
+    mocks.getCurrentUser.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      name: "User",
+      membershipId: "membership-1",
+      organizationId: "org-1",
+      organizationName: "Org",
+      workspaceId: "workspace-1",
+      workspaceName: "Workspace",
+      role: "CONTRIBUTOR",
+    });
+    mocks.prismaAuditCreate.mockResolvedValue({ id: "audit-1" });
   });
 
   it("returns 404 when the requested file is not owned by the current user", async () => {
-    mocks.getCurrentUser.mockResolvedValue({ id: "user-1", email: "user@example.com" });
     mocks.prismaFileFindFirst.mockResolvedValue(null);
 
     const response = await GET(
@@ -58,9 +75,8 @@ describe("file CID route", () => {
   });
 
   it("does not unpin a CID that is still referenced by another file record", async () => {
-    mocks.getCurrentUser.mockResolvedValue({ id: "user-1", email: "user@example.com" });
     mocks.prismaFileFindFirst.mockResolvedValue({ id: "file-1", cid: "cid-1" });
-    mocks.prismaFileDelete.mockResolvedValue({ id: "file-1", cid: "cid-1" });
+    mocks.prismaFileDelete.mockResolvedValue({ id: "file-1", cid: "cid-1", filename: "report.pdf" });
     mocks.prismaFileCount.mockResolvedValue(1);
 
     const response = await DELETE(
@@ -87,9 +103,10 @@ describe("file CID route", () => {
       mimeType: "application/pdf",
       uploadedAt: new Date("2024-01-01T00:00:00.000Z"),
       userId: "user-1",
+      organizationId: "org-1",
+      workspaceId: "workspace-1",
     };
 
-    mocks.getCurrentUser.mockResolvedValue({ id: "user-1", email: "user@example.com" });
     mocks.prismaFileFindFirst.mockResolvedValue(deletedFile);
     mocks.prismaFileDelete.mockResolvedValue(deletedFile);
     mocks.prismaFileCount.mockResolvedValue(0);

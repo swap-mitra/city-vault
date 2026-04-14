@@ -38,6 +38,28 @@ export default async function DashboardPage() {
                 </p>
               </div>
 
+              <div className="brutal-panel bg-[color-mix(in_oklch,var(--paper)_12%,var(--surface-1))] p-5 text-[var(--ink)]">
+                <p className="metric-label">Tenant context</p>
+                {session.user.organizationId && session.user.workspaceId && session.user.role ? (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-lg font-bold leading-7">
+                      {session.user.organizationName}
+                    </p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--ink)]/72">
+                      {session.user.workspaceName} / {session.user.role.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-lg font-bold leading-7">Legacy personal mode</p>
+                    <p className="text-sm leading-6 text-[var(--ink)]/72">
+                      This account is authenticated without an organization membership yet. The
+                      current file workspace remains available while tenant migration rolls out.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-3">
                 <form action="/api/auth/signout" method="post" className="w-full sm:w-auto">
                   <button type="submit" className="brutal-button brutal-button--ghost w-full sm:w-auto">

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/current-user";
 import { getGatewayUrl, getPinataClient } from "@/lib/pinata";
+import {
+  AuthorizationError,
+  authorizeTenantAccess,
+} from "@/lib/authorization";
+import { getAuditRequestMetadata, writeAuditEvent } from "@/lib/audit";
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +19,10 @@ export async function GET(
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    authorizeTenantAccess(currentUser, "files.read", {
+      allowLegacyUserWithoutMembership: true,
+    });
 
     const file = await prisma.file.findFirst({
       where: {
@@ -31,6 +40,10 @@ export async function GET(
       gatewayUrl: getGatewayUrl(file.cid),
     });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("File fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch file" },
@@ -51,6 +64,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    authorizeTenantAccess(currentUser, "files.delete", {
+      allowLegacyUserWithoutMembership: true,
+    });
+
     const file = await prisma.file.findFirst({
       where: {
         cid,
@@ -68,12 +85,32 @@ export async function DELETE(
     const deletedFile = await prisma.file.delete({
       where: { id: file.id },
     });
+    const requestMetadata = getAuditRequestMetadata(_request);
 
     const remainingReferences = await prisma.file.count({
       where: { cid },
     });
 
     if (remainingReferences > 0) {
+      await writeAuditEvent({
+        action: "file.delete.detached",
+        actorId: currentUser.id,
+        actorEmail: currentUser.email,
+        actorName: currentUser.name,
+        membershipId: currentUser.membershipId,
+        organizationId: currentUser.organizationId,
+        workspaceId: currentUser.workspaceId,
+        targetType: "File",
+        targetId: deletedFile.id,
+        metadata: {
+          cid,
+          filename: deletedFile.filename,
+          remainingReferences,
+          unpinnedFromIpfs: false,
+        },
+        ...requestMetadata,
+      });
+
       return NextResponse.json({
         success: true,
         unpinnedFromIpfs: false,
@@ -94,6 +131,8 @@ export async function DELETE(
           mimeType: deletedFile.mimeType,
           uploadedAt: deletedFile.uploadedAt,
           userId: deletedFile.userId,
+          organizationId: deletedFile.organizationId,
+          workspaceId: deletedFile.workspaceId,
         },
       });
 
@@ -107,12 +146,35 @@ export async function DELETE(
       );
     }
 
+    await writeAuditEvent({
+      action: "file.delete.completed",
+      actorId: currentUser.id,
+      actorEmail: currentUser.email,
+      actorName: currentUser.name,
+      membershipId: currentUser.membershipId,
+      organizationId: currentUser.organizationId,
+      workspaceId: currentUser.workspaceId,
+      targetType: "File",
+      targetId: deletedFile.id,
+      metadata: {
+        cid,
+        filename: deletedFile.filename,
+        remainingReferences: 0,
+        unpinnedFromIpfs: true,
+      },
+      ...requestMetadata,
+    });
+
     return NextResponse.json({
       success: true,
       unpinnedFromIpfs: true,
       message: "File deleted from your vault and unpinned from IPFS.",
     });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("Delete error:", error);
     return NextResponse.json(
       { error: "Failed to delete file" },

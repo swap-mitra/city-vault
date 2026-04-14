@@ -3,6 +3,10 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/current-user";
 import { getGatewayUrl } from "@/lib/pinata";
+import {
+  AuthorizationError,
+  authorizeTenantAccess,
+} from "@/lib/authorization";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +15,10 @@ export async function GET(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    authorizeTenantAccess(currentUser, "files.read", {
+      allowLegacyUserWithoutMembership: true,
+    });
 
     const { searchParams } = new URL(request.url);
     const cid = searchParams.get("cid");
@@ -55,6 +63,10 @@ export async function GET(request: NextRequest) {
       }))
     );
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("Files fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch files" },

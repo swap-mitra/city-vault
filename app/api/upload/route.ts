@@ -8,6 +8,11 @@ import {
   getRequestIdentity,
 } from "@/rate-limit";
 import { validateUploadFile } from "@/upload-validation";
+import {
+  AuthorizationError,
+  authorizeTenantAccess,
+} from "@/lib/authorization";
+import { getAuditRequestMetadata, writeAuditEvent } from "@/lib/audit";
 
 const uploadRateLimit = {
   bucket: "upload",
@@ -22,6 +27,10 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    authorizeTenantAccess(currentUser, "files.upload", {
+      allowLegacyUserWithoutMembership: true,
+    });
 
     const rateLimit = consumeRateLimit({
       ...uploadRateLimit,
@@ -50,6 +59,7 @@ export async function POST(request: NextRequest) {
 
     const uploaded = await getPinataClient().upload.file(maybeFile);
     const cid = uploaded.IpfsHash;
+    const requestMetadata = getAuditRequestMetadata(request);
 
     const existingFile = await prisma.file.findFirst({
       where: {
@@ -60,6 +70,23 @@ export async function POST(request: NextRequest) {
 
     if (existingFile) {
       const gatewayUrl = getGatewayUrl(cid);
+
+      await writeAuditEvent({
+        action: "file.upload.duplicate",
+        actorId: currentUser.id,
+        actorEmail: currentUser.email,
+        actorName: currentUser.name,
+        membershipId: currentUser.membershipId,
+        organizationId: currentUser.organizationId,
+        workspaceId: currentUser.workspaceId,
+        targetType: "File",
+        targetId: existingFile.id,
+        metadata: {
+          cid,
+          filename: existingFile.filename,
+        },
+        ...requestMetadata,
+      });
 
       return NextResponse.json({
         success: true,
@@ -78,7 +105,28 @@ export async function POST(request: NextRequest) {
         fileSize: Number(maybeFile.size),
         mimeType: maybeFile.type,
         userId: currentUser.id,
+        organizationId: currentUser.organizationId,
+        workspaceId: currentUser.workspaceId,
       },
+    });
+
+    await writeAuditEvent({
+      action: "file.upload.created",
+      actorId: currentUser.id,
+      actorEmail: currentUser.email,
+      actorName: currentUser.name,
+      membershipId: currentUser.membershipId,
+      organizationId: currentUser.organizationId,
+      workspaceId: currentUser.workspaceId,
+      targetType: "File",
+      targetId: record.id,
+      metadata: {
+        cid,
+        filename: record.filename,
+        mimeType: record.mimeType,
+        fileSize: record.fileSize,
+      },
+      ...requestMetadata,
     });
 
     return NextResponse.json({
@@ -90,6 +138,10 @@ export async function POST(request: NextRequest) {
       message: `${record.filename} uploaded successfully.`,
     });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("Upload error:", error);
 
     if (error instanceof Error && "code" in error && error.code === "P2002") {
