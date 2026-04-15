@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/current-user";
-import { getGatewayUrl, getPinataClient } from "@/lib/pinata";
+import {
+  AuthorizationError,
+  authorizeTenantAccess,
+} from "@/lib/authorization";
 import {
   consumeRateLimit,
   createRateLimitResponse,
   getRequestIdentity,
 } from "@/rate-limit";
+import { getAuditRequestMetadata } from "@/lib/audit";
+import { createRecordWithInitialVersion } from "@/lib/records";
 import { validateUploadFile } from "@/upload-validation";
-import {
-  AuthorizationError,
-  authorizeTenantAccess,
-} from "@/lib/authorization";
-import { getAuditRequestMetadata, writeAuditEvent } from "@/lib/audit";
 
 const uploadRateLimit = {
   bucket: "upload",
@@ -57,85 +56,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const uploaded = await getPinataClient().upload.file(maybeFile);
-    const cid = uploaded.IpfsHash;
-    const requestMetadata = getAuditRequestMetadata(request);
-
-    const existingFile = await prisma.file.findFirst({
-      where: {
-        cid,
-        userId: currentUser.id,
-      },
-    });
-
-    if (existingFile) {
-      const gatewayUrl = getGatewayUrl(cid);
-
-      await writeAuditEvent({
-        action: "file.upload.duplicate",
-        actorId: currentUser.id,
-        actorEmail: currentUser.email,
-        actorName: currentUser.name,
-        membershipId: currentUser.membershipId,
-        organizationId: currentUser.organizationId,
-        workspaceId: currentUser.workspaceId,
-        targetType: "File",
-        targetId: existingFile.id,
-        metadata: {
-          cid,
-          filename: existingFile.filename,
-        },
-        ...requestMetadata,
-      });
-
-      return NextResponse.json({
-        success: true,
-        cid,
-        filename: existingFile.filename,
-        fileId: existingFile.id,
-        gatewayUrl,
-        message: "File already exists in your vault.",
-      });
-    }
-
-    const record = await prisma.file.create({
-      data: {
-        filename: maybeFile.name,
-        cid,
-        fileSize: Number(maybeFile.size),
-        mimeType: maybeFile.type,
-        userId: currentUser.id,
-        organizationId: currentUser.organizationId,
-        workspaceId: currentUser.workspaceId,
-      },
-    });
-
-    await writeAuditEvent({
-      action: "file.upload.created",
-      actorId: currentUser.id,
-      actorEmail: currentUser.email,
-      actorName: currentUser.name,
-      membershipId: currentUser.membershipId,
-      organizationId: currentUser.organizationId,
-      workspaceId: currentUser.workspaceId,
-      targetType: "File",
-      targetId: record.id,
-      metadata: {
-        cid,
-        filename: record.filename,
-        mimeType: record.mimeType,
-        fileSize: record.fileSize,
-      },
-      ...requestMetadata,
+    const createdRecord = await createRecordWithInitialVersion({
+      currentUser,
+      title: maybeFile.name,
+      description: null,
+      file: maybeFile,
+      requestMetadata: getAuditRequestMetadata(request),
     });
 
     return NextResponse.json({
       success: true,
-      cid,
-      filename: record.filename,
-      fileId: record.id,
-      gatewayUrl: getGatewayUrl(cid),
-      message: `${record.filename} uploaded successfully.`,
+      recordId: createdRecord.recordId,
+      cid: createdRecord.latestVersion.cid,
+      filename: createdRecord.latestVersion.originalFilename,
+      fileId: createdRecord.recordId,
+      gatewayUrl: createdRecord.latestVersion.gatewayUrl,
+      message: `${createdRecord.latestVersion.originalFilename} uploaded successfully.`,
     });
   } catch (error) {
     if (error instanceof AuthorizationError) {
@@ -143,14 +79,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("Upload error:", error);
-
-    if (error instanceof Error && "code" in error && error.code === "P2002") {
-      return NextResponse.json(
-        { error: "This file is already in your vault" },
-        { status: 409 }
-      );
-    }
-
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }

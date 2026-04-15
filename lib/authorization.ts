@@ -3,6 +3,10 @@ import type { Role } from "@prisma/client";
 export type Permission =
   | "tenant.read"
   | "tenant.manage"
+  | "records.read"
+  | "records.create"
+  | "records.delete"
+  | "records.version.create"
   | "files.read"
   | "files.upload"
   | "files.delete"
@@ -33,6 +37,10 @@ const rolePermissions: Record<Role, Permission[]> = {
   ORG_ADMIN: [
     "tenant.read",
     "tenant.manage",
+    "records.read",
+    "records.create",
+    "records.delete",
+    "records.version.create",
     "files.read",
     "files.upload",
     "files.delete",
@@ -40,15 +48,28 @@ const rolePermissions: Record<Role, Permission[]> = {
   ],
   RECORDS_MANAGER: [
     "tenant.read",
+    "records.read",
+    "records.create",
+    "records.delete",
+    "records.version.create",
     "files.read",
     "files.upload",
     "files.delete",
     "audit.read",
   ],
-  REVIEWER: ["tenant.read", "files.read", "audit.read"],
-  CONTRIBUTOR: ["tenant.read", "files.read", "files.upload", "files.delete"],
-  READ_ONLY: ["tenant.read", "files.read"],
-  AUDITOR: ["tenant.read", "files.read", "audit.read"],
+  REVIEWER: ["tenant.read", "records.read", "files.read", "audit.read"],
+  CONTRIBUTOR: [
+    "tenant.read",
+    "records.read",
+    "records.create",
+    "records.delete",
+    "records.version.create",
+    "files.read",
+    "files.upload",
+    "files.delete",
+  ],
+  READ_ONLY: ["tenant.read", "records.read", "files.read"],
+  AUDITOR: ["tenant.read", "records.read", "files.read", "audit.read"],
 };
 
 export function hasPermission(role: Role, permission: Permission) {

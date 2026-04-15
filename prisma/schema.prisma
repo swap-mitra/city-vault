@@ -23,9 +23,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  files       File[]
-  memberships Membership[]
-  auditEvents AuditEvent[] @relation("AuditActor")
+  files                 File[]
+  records               Record[]
+  memberships           Membership[]
+  auditEvents           AuditEvent[]    @relation("AuditActor")
+  uploadedRecordVersions RecordVersion[] @relation("UploadedRecordVersion")
 }
 
 model Organization {
@@ -38,6 +40,7 @@ model Organization {
   workspaces  Workspace[]
   memberships Membership[]
   files       File[]
+  records     Record[]
   auditEvents AuditEvent[]
 }
 
@@ -52,10 +55,53 @@ model Workspace {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships  Membership[]
   files        File[]
+  records      Record[]
   auditEvents  AuditEvent[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+model Record {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+  organizationId String?
+  workspaceId    String?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  versions     RecordVersion[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@index([createdAt])
+}
+
+model RecordVersion {
+  id               String   @id @default(cuid())
+  recordId         String
+  versionNumber    Int
+  cid              String
+  originalFilename String
+  fileSize         Int
+  mimeType         String?
+  uploadedByUserId String
+  uploadedAt       DateTime @default(now())
+
+  record         Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  uploadedByUser User   @relation("UploadedRecordVersion", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, versionNumber])
+  @@index([cid])
+  @@index([recordId])
+  @@index([uploadedByUserId])
+  @@index([uploadedAt])
 }
 
 model Membership {

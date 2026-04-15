@@ -1,12 +1,17 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/current-user";
-import { getGatewayUrl } from "@/lib/pinata";
 import {
   AuthorizationError,
   authorizeTenantAccess,
 } from "@/lib/authorization";
+import {
+  getLegacyRecordByCid,
+  getRecordDetail,
+  listRecords,
+  mapRecordSummaryToLegacyFile,
+  RecordConflictError,
+  serializeLegacyFile,
+} from "@/lib/records";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,47 +27,47 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const cid = searchParams.get("cid");
-    const filename = searchParams.get("filename");
+    const filename = searchParams.get("filename")?.trim() || undefined;
 
     if (cid) {
-      const file = await prisma.file.findFirst({
-        where: {
-          cid,
-          userId: currentUser.id,
-        },
-      });
+      const legacyRecord = await getLegacyRecordByCid(currentUser, cid);
 
-      if (!file) {
+      if (!legacyRecord) {
         return NextResponse.json({ error: "File not found" }, { status: 404 });
       }
 
-      return NextResponse.json({
-        ...file,
-        gatewayUrl: getGatewayUrl(file.cid),
-      });
+      const detail = await getRecordDetail(currentUser, legacyRecord.record.id);
+
+      if (!detail) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(serializeLegacyFile(detail));
     }
 
-    const where: Prisma.FileWhereInput = { userId: currentUser.id };
-
-    if (filename) {
-      where.filename = {
-        contains: filename,
-        mode: "insensitive",
-      };
-    }
-
-    const files = await prisma.file.findMany({
-      where,
-      orderBy: { uploadedAt: "desc" },
-    });
+    const records = await listRecords(currentUser);
+    const filteredRecords = filename
+      ? records.filter((record) =>
+          record.latestVersion.originalFilename
+            .toLowerCase()
+            .includes(filename.toLowerCase())
+        )
+      : records;
 
     return NextResponse.json(
-      files.map((file) => ({
-        ...file,
-        gatewayUrl: getGatewayUrl(file.cid),
-      }))
+      filteredRecords.map((record) => mapRecordSummaryToLegacyFile(record))
     );
   } catch (error) {
+    if (error instanceof RecordConflictError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          recordId: error.recordId,
+        },
+        { status: error.status }
+      );
+    }
+
     if (error instanceof AuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }

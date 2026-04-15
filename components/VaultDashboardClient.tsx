@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FileList } from "@/components/FileList";
-import { FileUpload } from "@/components/FileUpload";
+import { RecordComposer } from "@/components/RecordComposer";
+import { RecordList } from "@/components/RecordList";
 import type { VaultNotice } from "@/vault-ui";
 
 type ToastNotice = VaultNotice & {
@@ -25,7 +25,7 @@ export function VaultDashboardClient() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
 
-  const handleUploaded = useCallback(() => {
+  const handleRecordChanged = useCallback(() => {
     setRefreshToken((current) => current + 1);
   }, []);
 
@@ -60,8 +60,8 @@ export function VaultDashboardClient() {
       </div>
 
       <div className="space-y-6">
-        <FileUpload onUploaded={handleUploaded} onNotice={handleNotice} />
-        <FileList refreshToken={refreshToken} onNotice={handleNotice} />
+        <RecordComposer onCreated={handleRecordChanged} onNotice={handleNotice} />
+        <RecordList refreshToken={refreshToken} onNotice={handleNotice} />
       </div>
     </>
   );
