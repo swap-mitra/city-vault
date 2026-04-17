@@ -16,8 +16,8 @@ export default async function DashboardPage() {
     <main className="px-4 sm:px-6 lg:px-8">
       <div className="vault-shell page-stack">
         <header className="brutal-panel brutal-panel--paper motion-rise p-6 sm:p-8">
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_23rem] xl:items-start">
-            <div className="space-y-8 paper-copy">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_22rem] xl:items-start">
+            <div className="space-y-6 paper-copy">
               <div className="space-y-5">
                 <div className="section-kicker">
                   <span className="h-2.5 w-2.5 bg-[var(--shadow)]" />
@@ -56,30 +56,34 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 xl:sticky xl:top-6">
-              <div className="brutal-panel bg-[color-mix(in_oklch,var(--paper)_18%,var(--surface-1))] p-5 text-[var(--ink)]">
-                <p className="metric-label">Signed in</p>
-                <p className="mt-2 break-all text-lg font-bold leading-7">{session.user.email}</p>
-              </div>
+            <div className="grid content-start gap-3">
+              <div className="brutal-panel bg-[color-mix(in_oklch,var(--paper)_15%,var(--surface-1))] p-5 text-[var(--ink)]">
+                <div className="space-y-4">
+                  <div>
+                    <p className="metric-label">Signed in</p>
+                    <p className="mt-2 break-all text-lg font-bold leading-7">{session.user.email}</p>
+                  </div>
 
-              <div className="brutal-panel bg-[color-mix(in_oklch,var(--paper)_12%,var(--surface-1))] p-5 text-[var(--ink)]">
-                <p className="metric-label">Tenant context</p>
-                {session.user.organizationId && session.user.workspaceId && session.user.role ? (
-                  <div className="mt-2 space-y-2">
-                    <p className="text-lg font-bold leading-7">{session.user.organizationName}</p>
-                    <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--ink)]/72">
-                      {session.user.workspaceName} / {session.user.role.replaceAll("_", " ")}
-                    </p>
+                  <div className="border-t-[3px] border-[var(--line)] pt-4">
+                    <p className="metric-label">Tenant context</p>
+                    {session.user.organizationId && session.user.workspaceId && session.user.role ? (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-lg font-bold leading-7">{session.user.organizationName}</p>
+                        <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--ink)]/72">
+                          {session.user.workspaceName} / {session.user.role.replaceAll("_", " ")}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-lg font-bold leading-7">Legacy personal mode</p>
+                        <p className="text-sm leading-6 text-[var(--ink)]/72">
+                          This account is authenticated without an organization membership yet. The
+                          current file workspace remains available while tenant migration rolls out.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    <p className="text-lg font-bold leading-7">Legacy personal mode</p>
-                    <p className="text-sm leading-6 text-[var(--ink)]/72">
-                      This account is authenticated without an organization membership yet. The
-                      current file workspace remains available while tenant migration rolls out.
-                    </p>
-                  </div>
-                )}
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
