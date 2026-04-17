@@ -38,6 +38,10 @@ describe("tenant context route", () => {
       permissions: {
         canManageTenant: true,
         canReadAudit: true,
+        canManageRetention: true,
+        canManageHolds: true,
+        canDisposeRecords: true,
+        canReadGovernance: true,
       },
     });
   });

@@ -1,9 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  appendRecordVersion: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  class MockRecordConflictError extends Error {
+    status: number;
+    recordId: string;
+
+    constructor(message: string, recordId: string, status = 409) {
+      super(message);
+      this.name = "RecordConflictError";
+      this.status = status;
+      this.recordId = recordId;
+    }
+  }
+
+  return {
+    getCurrentUser: vi.fn(),
+    appendRecordVersion: vi.fn(),
+    RecordConflictError: MockRecordConflictError,
+  };
+});
 
 vi.mock("@/current-user", () => ({
   getCurrentUser: mocks.getCurrentUser,
@@ -11,6 +26,7 @@ vi.mock("@/current-user", () => ({
 
 vi.mock("@/lib/records", () => ({
   appendRecordVersion: mocks.appendRecordVersion,
+  RecordConflictError: mocks.RecordConflictError,
 }));
 
 import { POST } from "@/app/api/records/[id]/versions/route";

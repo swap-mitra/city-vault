@@ -26,7 +26,7 @@ export default async function DashboardPage() {
                   Own the record trail.
                 </h1>
                 <p className="max-w-xl text-base leading-8 paper-muted sm:text-lg">
-                  Create records, route them through review, and keep version history and lifecycle state in one place.
+                  Create records, route them through review, and manage retention and holds from one workspace.
                 </p>
               </div>
             </div>
@@ -64,6 +64,9 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap gap-3">
                 <Link href="/dashboard/review" className="brutal-button brutal-button--ghost w-full sm:w-auto">
                   Review queue
+                </Link>
+                <Link href="/dashboard/governance" className="brutal-button brutal-button--ghost w-full sm:w-auto">
+                  Governance queue
                 </Link>
                 <form action="/api/auth/signout" method="post" className="w-full sm:w-auto">
                   <button type="submit" className="brutal-button brutal-button--ghost w-full sm:w-auto">

@@ -30,6 +30,10 @@ export async function GET() {
             canSubmitReview: hasPermission(tenant.role, "records.review.submit"),
             canApproveReview: hasPermission(tenant.role, "records.review.approve"),
             canArchiveRecords: hasPermission(tenant.role, "records.archive"),
+            canManageRetention: hasPermission(tenant.role, "records.retention.manage"),
+            canManageHolds: hasPermission(tenant.role, "records.hold.manage"),
+            canDisposeRecords: hasPermission(tenant.role, "records.dispose"),
+            canReadGovernance: hasPermission(tenant.role, "records.governance.read"),
           }
         : null,
     });

@@ -12,6 +12,24 @@ const reviewerSelect = {
   email: true,
 } satisfies Prisma.UserSelect;
 
+const retentionPolicySelect = {
+  id: true,
+  name: true,
+  description: true,
+  retentionDays: true,
+};
+
+const legalHoldSelect = {
+  id: true,
+  reason: true,
+  appliedByUserId: true,
+  appliedByUserEmail: true,
+  releasedByUserId: true,
+  releasedByUserEmail: true,
+  createdAt: true,
+  releasedAt: true,
+};
+
 const approvalRequestInclude = {
   reviewer: {
     select: reviewerSelect,
@@ -25,6 +43,18 @@ const recordListInclude = {
   reviewer: {
     select: reviewerSelect,
   },
+  retentionPolicy: {
+    select: retentionPolicySelect,
+  },
+  legalHolds: {
+    where: {
+      releasedAt: null,
+    },
+    select: legalHoldSelect,
+    orderBy: {
+      createdAt: "desc",
+    },
+  },
   versions: {
     orderBy: { versionNumber: "desc" },
     take: 1,
@@ -37,6 +67,15 @@ const recordListInclude = {
 const recordDetailInclude = {
   reviewer: {
     select: reviewerSelect,
+  },
+  retentionPolicy: {
+    select: retentionPolicySelect,
+  },
+  legalHolds: {
+    select: legalHoldSelect,
+    orderBy: {
+      createdAt: "desc",
+    },
   },
   versions: {
     orderBy: { versionNumber: "desc" },
@@ -74,6 +113,25 @@ export type ReviewerSummaryPayload = {
   email: string;
 };
 
+export type RetentionPolicyPayload = {
+  id: string;
+  name: string;
+  description: string | null;
+  retentionDays: number;
+};
+
+export type LegalHoldPayload = {
+  id: string;
+  reason: string;
+  appliedByUserId: string;
+  appliedByUserEmail: string | null;
+  releasedByUserId: string | null;
+  releasedByUserEmail: string | null;
+  createdAt: string;
+  releasedAt: string | null;
+  isActive: boolean;
+};
+
 export type ApprovalRequestPayload = {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -105,15 +163,21 @@ export type RecordSummaryPayload = {
   submittedForReviewAt: string | null;
   approvedAt: string | null;
   archivedAt: string | null;
+  retentionAssignedAt: string | null;
+  retentionExpiresAt: string | null;
+  activeHoldCount: number;
+  isEligibleForDisposition: boolean;
   createdAt: string;
   updatedAt: string;
   versionCount: number;
   reviewer: ReviewerSummaryPayload | null;
+  retentionPolicy: RetentionPolicyPayload | null;
   latestVersion: RecordVersionPayload;
 };
 
 export type RecordDetailPayload = RecordSummaryPayload & {
   approvalRequests: ApprovalRequestPayload[];
+  legalHolds: LegalHoldPayload[];
   versions: RecordVersionPayload[];
 };
 
@@ -132,6 +196,12 @@ export type ReviewQueuePayload = {
   records: RecordSummaryPayload[];
 };
 
+export type GovernanceQueuePayload = {
+  dueForDisposition: RecordSummaryPayload[];
+  heldRecords: RecordSummaryPayload[];
+  archivedRecords: RecordSummaryPayload[];
+};
+
 export class RecordConflictError extends Error {
   readonly status: number;
   readonly recordId: string;
@@ -144,6 +214,24 @@ export class RecordConflictError extends Error {
   }
 }
 
+const defaultRetentionPolicies = [
+  {
+    name: "Operational 30 days",
+    description: "Short-lived working records retained for thirty days after approval.",
+    retentionDays: 30,
+  },
+  {
+    name: "Standard 1 year",
+    description: "General business records retained for one year after approval.",
+    retentionDays: 365,
+  },
+  {
+    name: "Archive 7 years",
+    description: "Long-term evidence records retained for seven years after approval.",
+    retentionDays: 2555,
+  },
+] as const;
+
 function hasWorkspaceContext(currentUser: CurrentUser) {
   return Boolean(currentUser.organizationId && currentUser.workspaceId);
 }
@@ -154,6 +242,21 @@ function canManageAnyRecord(currentUser: CurrentUser) {
 
 function canApproveReview(currentUser: CurrentUser, reviewerId: string | null) {
   return canManageAnyRecord(currentUser) || reviewerId === currentUser.id;
+}
+
+function ensureWorkspaceContext(currentUser: CurrentUser, recordId?: string) {
+  if (!hasWorkspaceContext(currentUser)) {
+    throw new RecordConflictError(
+      "A workspace context is required for this governance action.",
+      recordId ?? "workspace",
+      400
+    );
+  }
+
+  return {
+    organizationId: currentUser.organizationId!,
+    workspaceId: currentUser.workspaceId!,
+  };
 }
 
 function buildReadableRecordScope(currentUser: CurrentUser): Prisma.RecordWhereInput {
@@ -192,6 +295,49 @@ function serializeReviewer(
   };
 }
 
+function serializeRetentionPolicy(
+  retentionPolicy:
+    | { id: string; name: string; description: string | null; retentionDays: number }
+    | null
+    | undefined
+): RetentionPolicyPayload | null {
+  if (!retentionPolicy) {
+    return null;
+  }
+
+  return {
+    id: retentionPolicy.id,
+    name: retentionPolicy.name,
+    description: retentionPolicy.description,
+    retentionDays: retentionPolicy.retentionDays,
+  };
+}
+
+function serializeLegalHold(
+  legalHold: {
+    id: string;
+    reason: string;
+    appliedByUserId: string;
+    appliedByUserEmail: string | null;
+    releasedByUserId: string | null;
+    releasedByUserEmail: string | null;
+    createdAt: Date;
+    releasedAt: Date | null;
+  }
+): LegalHoldPayload {
+  return {
+    id: legalHold.id,
+    reason: legalHold.reason,
+    appliedByUserId: legalHold.appliedByUserId,
+    appliedByUserEmail: legalHold.appliedByUserEmail,
+    releasedByUserId: legalHold.releasedByUserId,
+    releasedByUserEmail: legalHold.releasedByUserEmail,
+    createdAt: legalHold.createdAt.toISOString(),
+    releasedAt: legalHold.releasedAt?.toISOString() ?? null,
+    isActive: legalHold.releasedAt === null,
+  };
+}
+
 function serializeVersion(
   version: Pick<
     Prisma.RecordVersionGetPayload<object>,
@@ -227,6 +373,19 @@ function serializeApprovalRequest(
   };
 }
 
+function isEligibleForDisposition(record: {
+  status: string;
+  retentionExpiresAt: Date | null;
+  legalHolds: Array<{ releasedAt: Date | null }>;
+}) {
+  if (record.status !== "ARCHIVED" || !record.retentionExpiresAt) {
+    return false;
+  }
+
+  const hasActiveHold = record.legalHolds.some((hold) => hold.releasedAt === null);
+  return !hasActiveHold && record.retentionExpiresAt.getTime() <= Date.now();
+}
+
 function serializeRecordSummary(record: RecordListRow): RecordSummaryPayload {
   const latestVersion = record.versions[0];
 
@@ -239,16 +398,22 @@ function serializeRecordSummary(record: RecordListRow): RecordSummaryPayload {
     submittedForReviewAt: record.submittedForReviewAt?.toISOString() ?? null,
     approvedAt: record.approvedAt?.toISOString() ?? null,
     archivedAt: record.archivedAt?.toISOString() ?? null,
+    retentionAssignedAt: record.retentionAssignedAt?.toISOString() ?? null,
+    retentionExpiresAt: record.retentionExpiresAt?.toISOString() ?? null,
+    activeHoldCount: record.legalHolds.length,
+    isEligibleForDisposition: isEligibleForDisposition(record),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     versionCount: record._count.versions,
     reviewer: serializeReviewer(record.reviewer),
+    retentionPolicy: serializeRetentionPolicy(record.retentionPolicy),
     latestVersion: serializeVersion(latestVersion),
   };
 }
 
 function serializeRecordDetail(record: RecordDetailRow): RecordDetailPayload {
   const latestVersion = record.versions[0];
+  const activeHoldCount = record.legalHolds.filter((hold) => hold.releasedAt === null).length;
 
   return {
     recordId: record.id,
@@ -259,14 +424,20 @@ function serializeRecordDetail(record: RecordDetailRow): RecordDetailPayload {
     submittedForReviewAt: record.submittedForReviewAt?.toISOString() ?? null,
     approvedAt: record.approvedAt?.toISOString() ?? null,
     archivedAt: record.archivedAt?.toISOString() ?? null,
+    retentionAssignedAt: record.retentionAssignedAt?.toISOString() ?? null,
+    retentionExpiresAt: record.retentionExpiresAt?.toISOString() ?? null,
+    activeHoldCount,
+    isEligibleForDisposition: isEligibleForDisposition(record),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     versionCount: record._count.versions,
     reviewer: serializeReviewer(record.reviewer),
+    retentionPolicy: serializeRetentionPolicy(record.retentionPolicy),
     latestVersion: serializeVersion(latestVersion),
     approvalRequests: record.approvalRequests.map((approvalRequest) =>
       serializeApprovalRequest(approvalRequest)
     ),
+    legalHolds: record.legalHolds.map((legalHold) => serializeLegalHold(legalHold)),
     versions: record.versions.map((version) => serializeVersion(version)),
   };
 }
@@ -282,6 +453,18 @@ function buildAuditActor(currentUser: CurrentUser) {
   };
 }
 
+function calculateRetentionExpiry(referenceDate: Date, retentionDays: number) {
+  return new Date(referenceDate.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+}
+
+function getRetentionReferenceDate(record: {
+  approvedAt: Date | null;
+  archivedAt: Date | null;
+  createdAt: Date;
+}) {
+  return record.approvedAt ?? record.archivedAt ?? record.createdAt;
+}
+
 function assertEditableRecordOwner(record: { userId: string; id: string }, currentUser: CurrentUser) {
   if (!canManageAnyRecord(currentUser) && record.userId !== currentUser.id) {
     throw new AuthorizationError(
@@ -293,29 +476,189 @@ function assertEditableRecordOwner(record: { userId: string; id: string }, curre
 
 function assertDraftRecord(record: { status: string; id: string }) {
   if (record.status !== "DRAFT") {
-    throw new RecordConflictError(
-      "Only draft records can be changed.",
-      record.id
-    );
+    throw new RecordConflictError("Only draft records can be changed.", record.id);
   }
 }
 
 function assertApprovedRecord(record: { status: string; id: string }) {
   if (record.status !== "APPROVED") {
-    throw new RecordConflictError(
-      "Only approved records can be archived.",
-      record.id
-    );
+    throw new RecordConflictError("Only approved records can be archived.", record.id);
+  }
+}
+
+function assertArchivedRecord(record: { status: string; id: string }) {
+  if (record.status !== "ARCHIVED") {
+    throw new RecordConflictError("Only archived records can be disposed.", record.id);
   }
 }
 
 function assertUnderReviewRecord(record: { status: string; id: string }) {
   if (record.status !== "UNDER_REVIEW") {
-    throw new RecordConflictError(
-      "This record is not currently under review.",
-      record.id
-    );
+    throw new RecordConflictError("This record is not currently under review.", record.id);
   }
+}
+
+function assertNoActiveHolds(record: { id: string; legalHolds: Array<{ releasedAt: Date | null }> }, message: string) {
+  if (record.legalHolds.some((hold) => hold.releasedAt === null)) {
+    throw new RecordConflictError(message, record.id);
+  }
+}
+
+async function ensureDefaultRetentionPolicies(currentUser: CurrentUser) {
+  if (!hasWorkspaceContext(currentUser)) {
+    return;
+  }
+
+  const { organizationId, workspaceId } = ensureWorkspaceContext(currentUser);
+  const existingCount = await prisma.retentionPolicy.count({
+    where: {
+      organizationId,
+      workspaceId,
+    },
+  });
+
+  if (existingCount > 0) {
+    return;
+  }
+
+  await prisma.retentionPolicy.createMany({
+    data: defaultRetentionPolicies.map((policy) => ({
+      organizationId,
+      workspaceId,
+      name: policy.name,
+      description: policy.description,
+      retentionDays: policy.retentionDays,
+    })),
+    skipDuplicates: true,
+  });
+}
+
+async function purgeRecordAndVersions({
+  record,
+  currentUser,
+  requestMetadata,
+  auditAction,
+}: {
+  record: RecordDetailRow;
+  currentUser: CurrentUser;
+  requestMetadata: RequestMetadata;
+  auditAction: "record.delete" | "record.dispose";
+}) {
+  const uniqueCids = [...new Set(record.versions.map((version) => version.cid))];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.recordVersion.deleteMany({
+      where: { recordId: record.id },
+    });
+
+    await tx.approvalRequest.deleteMany({
+      where: { recordId: record.id },
+    });
+
+    await tx.legalHold.deleteMany({
+      where: { recordId: record.id },
+    });
+
+    await tx.record.delete({
+      where: { id: record.id },
+    });
+  });
+
+  const unpinnedCids: string[] = [];
+
+  try {
+    for (const cid of uniqueCids) {
+      const remainingReferences = await prisma.recordVersion.count({
+        where: { cid },
+      });
+
+      if (remainingReferences === 0) {
+        await getPinataClient().unpin([cid]);
+        unpinnedCids.push(cid);
+      }
+    }
+  } catch (error) {
+    await prisma.record.create({
+      data: {
+        id: record.id,
+        title: record.title,
+        description: record.description,
+        status: record.status,
+        reviewerId: record.reviewerId,
+        reviewNotes: record.reviewNotes,
+        submittedForReviewAt: record.submittedForReviewAt,
+        approvedAt: record.approvedAt,
+        archivedAt: record.archivedAt,
+        retentionPolicyId: record.retentionPolicyId,
+        retentionAssignedAt: record.retentionAssignedAt,
+        retentionExpiresAt: record.retentionExpiresAt,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        userId: record.userId,
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        versions: {
+          create: record.versions.map((version) => ({
+            id: version.id,
+            versionNumber: version.versionNumber,
+            cid: version.cid,
+            originalFilename: version.originalFilename,
+            fileSize: version.fileSize,
+            mimeType: version.mimeType,
+            uploadedByUserId: version.uploadedByUserId,
+            uploadedAt: version.uploadedAt,
+          })),
+        },
+        approvalRequests: {
+          create: record.approvalRequests.map((approvalRequest) => ({
+            id: approvalRequest.id,
+            requestedByUserId: approvalRequest.requestedByUserId,
+            reviewerId: approvalRequest.reviewerId,
+            status: approvalRequest.status,
+            requestNotes: approvalRequest.requestNotes,
+            decisionNotes: approvalRequest.decisionNotes,
+            submittedAt: approvalRequest.submittedAt,
+            decidedAt: approvalRequest.decidedAt,
+          })),
+        },
+        legalHolds: {
+          create: record.legalHolds.map((legalHold) => ({
+            id: legalHold.id,
+            reason: legalHold.reason,
+            appliedByUserId: legalHold.appliedByUserId,
+            appliedByUserEmail: legalHold.appliedByUserEmail,
+            releasedByUserId: legalHold.releasedByUserId,
+            releasedByUserEmail: legalHold.releasedByUserEmail,
+            createdAt: legalHold.createdAt,
+            releasedAt: legalHold.releasedAt,
+          })),
+        },
+      },
+    });
+
+    throw error;
+  }
+
+  await writeAuditEvent({
+    action: auditAction,
+    ...buildAuditActor(currentUser),
+    targetType: "Record",
+    targetId: record.id,
+    metadata: {
+      title: record.title,
+      status: record.status,
+      versionCount: record._count.versions,
+      unpinnedCids,
+    },
+    ...requestMetadata,
+  });
+
+  return {
+    recordId: record.id,
+    title: record.title,
+    versionCount: record._count.versions,
+    unpinnedCids,
+  };
 }
 
 export async function listRecords(currentUser: CurrentUser, query?: string) {
@@ -376,13 +719,47 @@ export async function listReviewQueue(currentUser: CurrentUser): Promise<ReviewQ
   };
 }
 
+export async function listGovernanceQueue(currentUser: CurrentUser): Promise<GovernanceQueuePayload> {
+  const where: Prisma.RecordWhereInput = {
+    ...buildReadableRecordScope(currentUser),
+    OR: [
+      { archivedAt: { not: null } },
+      {
+        legalHolds: {
+          some: {
+            releasedAt: null,
+          },
+        },
+      },
+      { retentionExpiresAt: { not: null } },
+    ],
+  };
+
+  const records = await prisma.record.findMany({
+    where,
+    include: recordListInclude,
+    orderBy: [
+      { retentionExpiresAt: "asc" },
+      { archivedAt: "desc" },
+      { updatedAt: "desc" },
+    ],
+  });
+
+  const serialized = records.map((record) => serializeRecordSummary(record));
+
+  return {
+    dueForDisposition: serialized.filter((record) => record.isEligibleForDisposition),
+    heldRecords: serialized.filter((record) => record.activeHoldCount > 0),
+    archivedRecords: serialized.filter((record) => record.status === "ARCHIVED"),
+  };
+}
+
 export async function listEligibleReviewers(currentUser: CurrentUser) {
   if (!hasWorkspaceContext(currentUser)) {
     return [];
   }
 
-  const organizationId = currentUser.organizationId!;
-  const workspaceId = currentUser.workspaceId!;
+  const { organizationId, workspaceId } = ensureWorkspaceContext(currentUser);
 
   const memberships = await prisma.membership.findMany({
     where: {
@@ -409,6 +786,28 @@ export async function listEligibleReviewers(currentUser: CurrentUser) {
     email: membership.user.email,
     role: membership.role,
   }));
+}
+
+export async function listRetentionPolicies(currentUser: CurrentUser) {
+  if (!hasWorkspaceContext(currentUser)) {
+    return [];
+  }
+
+  await ensureDefaultRetentionPolicies(currentUser);
+  const { organizationId, workspaceId } = ensureWorkspaceContext(currentUser);
+
+  const retentionPolicies = await prisma.retentionPolicy.findMany({
+    where: {
+      organizationId,
+      workspaceId,
+    },
+    orderBy: [
+      { retentionDays: "asc" },
+      { name: "asc" },
+    ],
+  });
+
+  return retentionPolicies.map((policy) => serializeRetentionPolicy(policy)!);
 }
 
 export async function getRecordDetail(currentUser: CurrentUser, recordId: string) {
@@ -534,6 +933,15 @@ export async function appendRecordVersion({
           orderBy: { versionNumber: "desc" },
           take: 1,
         },
+        legalHolds: {
+          where: {
+            releasedAt: null,
+          },
+          select: {
+            id: true,
+            releasedAt: true,
+          },
+        },
       },
     });
 
@@ -543,6 +951,7 @@ export async function appendRecordVersion({
 
     assertEditableRecordOwner(record, currentUser);
     assertDraftRecord(record);
+    assertNoActiveHolds(record, "Records on active hold cannot be changed.");
 
     const nextVersionNumber = (record.versions[0]?.versionNumber ?? 0) + 1;
 
@@ -609,16 +1018,7 @@ export async function submitRecordForReview({
   requestNotes,
   requestMetadata,
 }: SubmitReviewInput) {
-  if (!hasWorkspaceContext(currentUser)) {
-    throw new RecordConflictError(
-      "A workspace context is required to submit records for review.",
-      recordId,
-      400
-    );
-  }
-
-  const organizationId = currentUser.organizationId!;
-  const workspaceId = currentUser.workspaceId!;
+  const { organizationId, workspaceId } = ensureWorkspaceContext(currentUser, recordId);
 
   const reviewerMembership = await prisma.membership.findFirst({
     where: {
@@ -659,6 +1059,7 @@ export async function submitRecordForReview({
 
     assertEditableRecordOwner(record, currentUser);
     assertDraftRecord(record);
+    assertNoActiveHolds(record, "Records on active hold cannot enter review.");
 
     await tx.approvalRequest.create({
       data: {
@@ -678,6 +1079,7 @@ export async function submitRecordForReview({
         submittedForReviewAt: new Date(),
         approvedAt: null,
         archivedAt: null,
+        retentionExpiresAt: null,
       },
     });
 
@@ -754,12 +1156,24 @@ export async function approveRecordReview({
       );
     }
 
+    const approvedAt = new Date();
+    const retentionExpiresAt = record.retentionPolicy
+      ? calculateRetentionExpiry(
+          getRetentionReferenceDate({
+            approvedAt,
+            archivedAt: record.archivedAt,
+            createdAt: record.createdAt,
+          }),
+          record.retentionPolicy.retentionDays
+        )
+      : null;
+
     await tx.approvalRequest.update({
       where: { id: pendingApproval.id },
       data: {
         status: "APPROVED",
         decisionNotes: decisionNotes?.trim() || null,
-        decidedAt: new Date(),
+        decidedAt: approvedAt,
       },
     });
 
@@ -768,8 +1182,9 @@ export async function approveRecordReview({
       data: {
         status: "APPROVED",
         reviewNotes: decisionNotes?.trim() || record.reviewNotes,
-        approvedAt: new Date(),
+        approvedAt,
         archivedAt: null,
+        retentionExpiresAt,
       },
     });
 
@@ -791,6 +1206,7 @@ export async function approveRecordReview({
     metadata: {
       status: result.status,
       decisionNotes: decisionNotes?.trim() || null,
+      retentionExpiresAt: result.retentionExpiresAt?.toISOString() ?? null,
     },
     ...requestMetadata,
   });
@@ -854,6 +1270,7 @@ export async function rejectRecordReview({
         submittedForReviewAt: null,
         approvedAt: null,
         archivedAt: null,
+        retentionExpiresAt: null,
       },
     });
 
@@ -906,19 +1323,29 @@ export async function archiveRecord({
   }
 
   if (!canManageAnyRecord(currentUser)) {
-    throw new AuthorizationError(
-      403,
-      "Only a records manager can archive this record."
-    );
+    throw new AuthorizationError(403, "Only a records manager can archive this record.");
   }
 
   assertApprovedRecord(record);
+
+  const archivedAt = new Date();
+  const retentionExpiresAt = record.retentionPolicy
+    ? calculateRetentionExpiry(
+        getRetentionReferenceDate({
+          approvedAt: record.approvedAt,
+          archivedAt,
+          createdAt: record.createdAt,
+        }),
+        record.retentionPolicy.retentionDays
+      )
+    : record.retentionExpiresAt;
 
   const updatedRecord = await prisma.record.update({
     where: { id: record.id },
     data: {
       status: "ARCHIVED",
-      archivedAt: new Date(),
+      archivedAt,
+      retentionExpiresAt,
     },
     include: recordDetailInclude,
   });
@@ -930,11 +1357,285 @@ export async function archiveRecord({
     targetId: updatedRecord.id,
     metadata: {
       status: updatedRecord.status,
+      retentionExpiresAt: updatedRecord.retentionExpiresAt?.toISOString() ?? null,
     },
     ...requestMetadata,
   });
 
   return serializeRecordDetail(updatedRecord);
+}
+
+type AssignRetentionPolicyInput = {
+  currentUser: CurrentUser;
+  recordId: string;
+  retentionPolicyId: string;
+  requestMetadata: RequestMetadata;
+};
+
+export async function assignRetentionPolicy({
+  currentUser,
+  recordId,
+  retentionPolicyId,
+  requestMetadata,
+}: AssignRetentionPolicyInput) {
+  if (!canManageAnyRecord(currentUser)) {
+    throw new AuthorizationError(403, "Only a records manager can assign retention.");
+  }
+
+  const { organizationId, workspaceId } = ensureWorkspaceContext(currentUser, recordId);
+  await ensureDefaultRetentionPolicies(currentUser);
+
+  const retentionPolicy = await prisma.retentionPolicy.findFirst({
+    where: {
+      id: retentionPolicyId,
+      organizationId,
+      workspaceId,
+    },
+  });
+
+  if (!retentionPolicy) {
+    throw new RecordConflictError("Retention policy not found in this workspace.", recordId, 404);
+  }
+
+  const record = await prisma.record.findFirst({
+    where: {
+      id: recordId,
+      ...buildReadableRecordScope(currentUser),
+    },
+    include: recordDetailInclude,
+  });
+
+  if (!record) {
+    return null;
+  }
+
+  const retentionAssignedAt = new Date();
+  const retentionExpiresAt =
+    record.status === "APPROVED" || record.status === "ARCHIVED"
+      ? calculateRetentionExpiry(
+          getRetentionReferenceDate({
+            approvedAt: record.approvedAt,
+            archivedAt: record.archivedAt,
+            createdAt: record.createdAt,
+          }),
+          retentionPolicy.retentionDays
+        )
+      : null;
+
+  const updatedRecord = await prisma.record.update({
+    where: { id: record.id },
+    data: {
+      retentionPolicyId: retentionPolicy.id,
+      retentionAssignedAt,
+      retentionExpiresAt,
+    },
+    include: recordDetailInclude,
+  });
+
+  await writeAuditEvent({
+    action: "record.retention.assign",
+    ...buildAuditActor(currentUser),
+    targetType: "Record",
+    targetId: updatedRecord.id,
+    metadata: {
+      retentionPolicyId: retentionPolicy.id,
+      retentionPolicyName: retentionPolicy.name,
+      retentionDays: retentionPolicy.retentionDays,
+      retentionExpiresAt: updatedRecord.retentionExpiresAt?.toISOString() ?? null,
+    },
+    ...requestMetadata,
+  });
+
+  return serializeRecordDetail(updatedRecord);
+}
+
+type CreateLegalHoldInput = {
+  currentUser: CurrentUser;
+  recordId: string;
+  reason: string;
+  requestMetadata: RequestMetadata;
+};
+
+export async function createLegalHold({
+  currentUser,
+  recordId,
+  reason,
+  requestMetadata,
+}: CreateLegalHoldInput) {
+  if (!canManageAnyRecord(currentUser)) {
+    throw new AuthorizationError(403, "Only a records manager can place legal holds.");
+  }
+
+  const trimmedReason = reason.trim();
+
+  if (trimmedReason.length === 0) {
+    throw new RecordConflictError("A legal hold reason is required.", recordId, 400);
+  }
+
+  const record = await prisma.record.findFirst({
+    where: {
+      id: recordId,
+      ...buildReadableRecordScope(currentUser),
+    },
+    include: recordDetailInclude,
+  });
+
+  if (!record) {
+    return null;
+  }
+
+  const updatedRecord = await prisma.$transaction(async (tx) => {
+    await tx.legalHold.create({
+      data: {
+        recordId: record.id,
+        reason: trimmedReason,
+        appliedByUserId: currentUser.id,
+        appliedByUserEmail: currentUser.email,
+      },
+    });
+
+    return tx.record.findUniqueOrThrow({
+      where: { id: record.id },
+      include: recordDetailInclude,
+    });
+  });
+
+  await writeAuditEvent({
+    action: "record.hold.create",
+    ...buildAuditActor(currentUser),
+    targetType: "Record",
+    targetId: updatedRecord.id,
+    metadata: {
+      reason: trimmedReason,
+      activeHoldCount: updatedRecord.legalHolds.filter((hold) => hold.releasedAt === null).length,
+    },
+    ...requestMetadata,
+  });
+
+  return serializeRecordDetail(updatedRecord);
+}
+
+type ReleaseLegalHoldInput = {
+  currentUser: CurrentUser;
+  recordId: string;
+  holdId: string;
+  requestMetadata: RequestMetadata;
+};
+
+export async function releaseLegalHold({
+  currentUser,
+  recordId,
+  holdId,
+  requestMetadata,
+}: ReleaseLegalHoldInput) {
+  if (!canManageAnyRecord(currentUser)) {
+    throw new AuthorizationError(403, "Only a records manager can release legal holds.");
+  }
+
+  const record = await prisma.record.findFirst({
+    where: {
+      id: recordId,
+      ...buildReadableRecordScope(currentUser),
+    },
+    include: recordDetailInclude,
+  });
+
+  if (!record) {
+    return null;
+  }
+
+  const hold = record.legalHolds.find((legalHold) => legalHold.id === holdId);
+
+  if (!hold) {
+    throw new RecordConflictError("Legal hold not found for this record.", recordId, 404);
+  }
+
+  if (hold.releasedAt) {
+    throw new RecordConflictError("This legal hold has already been released.", recordId);
+  }
+
+  const updatedRecord = await prisma.$transaction(async (tx) => {
+    await tx.legalHold.update({
+      where: { id: hold.id },
+      data: {
+        releasedAt: new Date(),
+        releasedByUserId: currentUser.id,
+        releasedByUserEmail: currentUser.email,
+      },
+    });
+
+    return tx.record.findUniqueOrThrow({
+      where: { id: record.id },
+      include: recordDetailInclude,
+    });
+  });
+
+  await writeAuditEvent({
+    action: "record.hold.release",
+    ...buildAuditActor(currentUser),
+    targetType: "Record",
+    targetId: updatedRecord.id,
+    metadata: {
+      holdId: hold.id,
+      reason: hold.reason,
+      activeHoldCount: updatedRecord.legalHolds.filter((legalHold) => legalHold.releasedAt === null).length,
+    },
+    ...requestMetadata,
+  });
+
+  return serializeRecordDetail(updatedRecord);
+}
+
+type DisposeRecordInput = {
+  currentUser: CurrentUser;
+  recordId: string;
+  requestMetadata: RequestMetadata;
+};
+
+export async function disposeRecord({
+  currentUser,
+  recordId,
+  requestMetadata,
+}: DisposeRecordInput) {
+  if (!canManageAnyRecord(currentUser)) {
+    throw new AuthorizationError(403, "Only a records manager can dispose records.");
+  }
+
+  const record = await prisma.record.findFirst({
+    where: {
+      id: recordId,
+      ...buildReadableRecordScope(currentUser),
+    },
+    include: recordDetailInclude,
+  });
+
+  if (!record) {
+    return null;
+  }
+
+  assertArchivedRecord(record);
+  assertNoActiveHolds(record, "Records on active hold cannot be disposed.");
+
+  if (!record.retentionExpiresAt) {
+    throw new RecordConflictError(
+      "Assign a retention policy before disposing this record.",
+      record.id
+    );
+  }
+
+  if (record.retentionExpiresAt.getTime() > Date.now()) {
+    throw new RecordConflictError(
+      "This record is not yet due for disposition.",
+      record.id
+    );
+  }
+
+  return purgeRecordAndVersions({
+    record,
+    currentUser,
+    requestMetadata,
+    auditAction: "record.dispose",
+  });
 }
 
 type DeleteRecordInput = {
@@ -962,102 +1663,14 @@ export async function deleteRecordAndVersions({
 
   assertEditableRecordOwner(record, currentUser);
   assertDraftRecord(record);
+  assertNoActiveHolds(record, "Records on active hold cannot be deleted.");
 
-  const uniqueCids = [...new Set(record.versions.map((version) => version.cid))];
-
-  await prisma.$transaction(async (tx) => {
-    await tx.recordVersion.deleteMany({
-      where: { recordId: record.id },
-    });
-
-    await tx.approvalRequest.deleteMany({
-      where: { recordId: record.id },
-    });
-
-    await tx.record.delete({
-      where: { id: record.id },
-    });
+  return purgeRecordAndVersions({
+    record,
+    currentUser,
+    requestMetadata,
+    auditAction: "record.delete",
   });
-
-  const unpinnedCids: string[] = [];
-
-  try {
-    for (const cid of uniqueCids) {
-      const remainingReferences = await prisma.recordVersion.count({
-        where: { cid },
-      });
-
-      if (remainingReferences === 0) {
-        await getPinataClient().unpin([cid]);
-        unpinnedCids.push(cid);
-      }
-    }
-  } catch (error) {
-    await prisma.record.create({
-      data: {
-        id: record.id,
-        title: record.title,
-        description: record.description,
-        status: record.status,
-        reviewerId: record.reviewerId,
-        reviewNotes: record.reviewNotes,
-        submittedForReviewAt: record.submittedForReviewAt,
-        approvedAt: record.approvedAt,
-        archivedAt: record.archivedAt,
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt,
-        userId: record.userId,
-        organizationId: record.organizationId,
-        workspaceId: record.workspaceId,
-        versions: {
-          create: record.versions.map((version) => ({
-            id: version.id,
-            versionNumber: version.versionNumber,
-            cid: version.cid,
-            originalFilename: version.originalFilename,
-            fileSize: version.fileSize,
-            mimeType: version.mimeType,
-            uploadedByUserId: version.uploadedByUserId,
-            uploadedAt: version.uploadedAt,
-          })),
-        },
-        approvalRequests: {
-          create: record.approvalRequests.map((approvalRequest) => ({
-            id: approvalRequest.id,
-            requestedByUserId: approvalRequest.requestedByUserId,
-            reviewerId: approvalRequest.reviewerId,
-            status: approvalRequest.status,
-            requestNotes: approvalRequest.requestNotes,
-            decisionNotes: approvalRequest.decisionNotes,
-            submittedAt: approvalRequest.submittedAt,
-            decidedAt: approvalRequest.decidedAt,
-          })),
-        },
-      },
-    });
-
-    throw error;
-  }
-
-  await writeAuditEvent({
-    action: "record.delete",
-    ...buildAuditActor(currentUser),
-    targetType: "Record",
-    targetId: record.id,
-    metadata: {
-      title: record.title,
-      versionCount: record._count.versions,
-      unpinnedCids,
-    },
-    ...requestMetadata,
-  });
-
-  return {
-    recordId: record.id,
-    title: record.title,
-    versionCount: record._count.versions,
-    unpinnedCids,
-  };
 }
 
 export async function getLegacyRecordByCid(currentUser: CurrentUser, cid: string) {
@@ -1105,9 +1718,7 @@ export function serializeLegacyFile(record: RecordDetailPayload): LegacyFilePayl
   };
 }
 
-export function mapRecordSummaryToLegacyFile(
-  record: RecordSummaryPayload
-): LegacyFilePayload {
+export function mapRecordSummaryToLegacyFile(record: RecordSummaryPayload): LegacyFilePayload {
   return {
     id: record.recordId,
     recordId: record.recordId,

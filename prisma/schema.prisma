@@ -53,11 +53,12 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  workspaces  Workspace[]
-  memberships Membership[]
-  files       File[]
-  records     Record[]
-  auditEvents AuditEvent[]
+  workspaces        Workspace[]
+  memberships       Membership[]
+  files             File[]
+  records           Record[]
+  auditEvents       AuditEvent[]
+  retentionPolicies RetentionPolicy[]
 }
 
 model Workspace {
@@ -68,44 +69,52 @@ model Workspace {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships  Membership[]
-  files        File[]
-  records      Record[]
-  auditEvents  AuditEvent[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships      Membership[]
+  files            File[]
+  records          Record[]
+  auditEvents      AuditEvent[]
+  retentionPolicies RetentionPolicy[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
 }
 
 model Record {
-  id                  String       @id @default(cuid())
-  title               String
-  description         String?
-  status              RecordStatus @default(DRAFT)
-  reviewerId          String?
-  reviewNotes         String?
+  id                   String       @id @default(cuid())
+  title                String
+  description          String?
+  status               RecordStatus @default(DRAFT)
+  reviewerId           String?
+  reviewNotes          String?
   submittedForReviewAt DateTime?
-  approvedAt          DateTime?
-  archivedAt          DateTime?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  userId              String
-  organizationId      String?
-  workspaceId         String?
+  approvedAt           DateTime?
+  archivedAt           DateTime?
+  retentionPolicyId    String?
+  retentionAssignedAt  DateTime?
+  retentionExpiresAt   DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  userId               String
+  organizationId       String?
+  workspaceId          String?
 
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviewer         User?            @relation("CurrentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   organization     Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   workspace        Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  retentionPolicy  RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id], onDelete: SetNull)
   versions         RecordVersion[]
   approvalRequests ApprovalRequest[]
+  legalHolds       LegalHold[]
 
   @@index([userId])
   @@index([reviewerId])
   @@index([organizationId])
   @@index([workspaceId])
   @@index([status])
+  @@index([retentionPolicyId])
+  @@index([retentionExpiresAt])
   @@index([createdAt])
 }
 
@@ -128,6 +137,42 @@ model ApprovalRequest {
   @@index([reviewerId, status])
   @@index([requestedByUserId])
   @@index([submittedAt])
+}
+
+model RetentionPolicy {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  retentionDays  Int
+  organizationId String?
+  workspaceId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  records      Record[]
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@unique([organizationId, workspaceId, name])
+}
+
+model LegalHold {
+  id                 String   @id @default(cuid())
+  recordId           String
+  reason             String
+  appliedByUserId    String
+  appliedByUserEmail String?
+  releasedByUserId   String?
+  releasedByUserEmail String?
+  createdAt          DateTime @default(now())
+  releasedAt         DateTime?
+
+  record Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId, releasedAt])
+  @@index([createdAt])
 }
 
 model RecordVersion {

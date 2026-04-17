@@ -22,8 +22,16 @@ describe("authorization helper", () => {
     expect(hasPermission("REVIEWER", "records.create")).toBe(false);
   });
 
-  it("allows records managers to archive records", () => {
+  it("allows records managers to manage governance controls", () => {
     expect(hasPermission("RECORDS_MANAGER", "records.archive")).toBe(true);
+    expect(hasPermission("RECORDS_MANAGER", "records.retention.manage")).toBe(true);
+    expect(hasPermission("RECORDS_MANAGER", "records.hold.manage")).toBe(true);
+    expect(hasPermission("RECORDS_MANAGER", "records.dispose")).toBe(true);
+  });
+
+  it("allows auditors to read governance queues without mutation access", () => {
+    expect(hasPermission("AUDITOR", "records.governance.read")).toBe(true);
+    expect(hasPermission("AUDITOR", "records.dispose")).toBe(false);
   });
 
   it("blocks contributors from reading audit trails", () => {

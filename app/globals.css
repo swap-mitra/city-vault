@@ -51,16 +51,11 @@ body {
   text-rendering: optimizeLegibility;
   position: relative;
 }
-
-body::before,
-body::after {
+body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-}
-
-body::before {
   background-image:
     linear-gradient(color-mix(in oklch, var(--paper) 7%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in oklch, var(--paper) 7%, transparent) 1px, transparent 1px);
@@ -69,21 +64,9 @@ body::before {
   mask-image: linear-gradient(180deg, black, transparent 92%);
 }
 
-body::after {
-  inset: auto 4vw 7vh auto;
-  width: 16rem;
-  height: 16rem;
-  border: 3px solid color-mix(in oklch, var(--accent) 75%, var(--line));
-  background: color-mix(in oklch, var(--accent) 10%, transparent);
-  transform: rotate(-9deg);
-  box-shadow: 14px 14px 0 var(--shadow);
-  opacity: 0.35;
-}
-
 main {
   position: relative;
 }
-
 h1,
 h2,
 h3,
@@ -331,13 +314,6 @@ select {
 }
 
 @media (max-width: 768px) {
-  body::after {
-    width: 8rem;
-    height: 8rem;
-    right: 1rem;
-    bottom: 1rem;
-    box-shadow: 8px 8px 0 var(--shadow);
-  }
 
   .vault-shell {
     width: min(calc(100% - 1rem), 86rem);
@@ -347,3 +323,7 @@ select {
     padding-block: 0.75rem 1.5rem;
   }
 }
+
+
+
+

@@ -10,6 +10,10 @@ export type Permission =
   | "records.review.submit"
   | "records.review.approve"
   | "records.archive"
+  | "records.retention.manage"
+  | "records.hold.manage"
+  | "records.dispose"
+  | "records.governance.read"
   | "files.read"
   | "files.upload"
   | "files.delete"
@@ -47,6 +51,10 @@ const rolePermissions: Record<Role, Permission[]> = {
     "records.review.submit",
     "records.review.approve",
     "records.archive",
+    "records.retention.manage",
+    "records.hold.manage",
+    "records.dispose",
+    "records.governance.read",
     "files.read",
     "files.upload",
     "files.delete",
@@ -61,6 +69,10 @@ const rolePermissions: Record<Role, Permission[]> = {
     "records.review.submit",
     "records.review.approve",
     "records.archive",
+    "records.retention.manage",
+    "records.hold.manage",
+    "records.dispose",
+    "records.governance.read",
     "files.read",
     "files.upload",
     "files.delete",
@@ -85,7 +97,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     "files.delete",
   ],
   READ_ONLY: ["tenant.read", "records.read", "files.read"],
-  AUDITOR: ["tenant.read", "records.read", "files.read", "audit.read"],
+  AUDITOR: ["tenant.read", "records.read", "records.governance.read", "files.read", "audit.read"],
 };
 
 export function hasPermission(role: Role, permission: Permission) {
