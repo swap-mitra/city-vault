@@ -1,103 +1,227 @@
-# City Vault 🏛️
+# City Vault
 
-A modern, secure file storage application built on IPFS (InterPlanetary File System) with metadata management powered by Neon Postgres. Upload, store, and retrieve your files with the permanence and decentralization of IPFS combined with the convenience of traditional web applications.
+City Vault is a multi-tenant records governance platform built on Next.js, Prisma, Postgres, and IPFS-backed content addressing. It is designed for teams that need more than basic file storage: versioned records, role-based access control, review workflows, retention operations, legal holds, governance queues, and audit-aware record handling.
 
-## ✨ Features
+The product direction is intentionally aligned with enterprise and public-sector records operations. Instead of treating uploads as isolated files, City Vault models them as governed records with lifecycle state, version history, organizational ownership, and operational controls.
 
-- **Decentralized Storage**: Files are stored on IPFS via Pinata, ensuring permanent and distributed file hosting
-- **User Authentication**: Secure authentication system with NextAuth.js and bcrypt password hashing
-- **File Management**: Upload, search, view, and delete files with an intuitive dashboard
-- **Metadata Tracking**: Store file metadata (filename, size, MIME type, upload date) in Neon Postgres
-- **IPFS Gateway Access**: Direct links to view files through IPFS gateways
-- **Modern Stack**: Built with Next.js 16, React 19, TypeScript, and Tailwind CSS
+## Platform Positioning
 
-## 🛠️ Tech Stack
+City Vault is not a generic drive clone. It is positioned as a modern records operations layer for organizations that need:
+
+- controlled record intake
+- versioned evidence management
+- tenant-aware access boundaries
+- review and approval workflows
+- retention and disposition controls
+- legal hold enforcement
+- IPFS-based content addressing and retrieval
+- operational traceability for governance-heavy workflows
+
+This makes the platform suitable for internal records teams, compliance-oriented operations, regulated business workflows, and any environment where provenance and governance matter more than simple storage volume.
+
+## Current Product Capabilities
+
+### Tenant and access foundation
+- Multi-tenant domain model with `Organization`, `Workspace`, and `Membership`
+- Role-based access control for `ORG_ADMIN`, `RECORDS_MANAGER`, `REVIEWER`, `CONTRIBUTOR`, `READ_ONLY`, and `AUDITOR`
+- Tenant-aware session context and server-side authorization checks
+- Centralized permission mapping for record, workflow, and governance actions
+
+### Records core
+- Record-centric data model with `Record` and `RecordVersion`
+- Create a record with title, optional description, and an initial uploaded file
+- Append new versions to an existing record
+- Latest-version summaries in list views
+- Dedicated record detail screen with full version history
+- Compatibility shims for legacy file endpoints while the platform transitions fully to records
+
+### Workflow and lifecycle
+- Draft to review to archive lifecycle support
+- Review queue for operational processing
+- Reviewer assignment and decision flows
+- Workflow controls surfaced on record detail pages
+- Guardrails that prevent inappropriate actions in the wrong record state
+
+### Governance operations
+- Retention policy assignment on eligible records
+- Computed retention expiry dates
+- Legal hold creation and release
+- Governance queue for retained, held, archived, and disposition-eligible records
+- Disposition safeguards that block destructive actions while active holds exist
+
+### Storage and delivery
+- File upload to IPFS via Pinata
+- CID-based content lookup and gateway access
+- Metadata persistence in Postgres via Prisma
+- Version-aware record services layered over content-addressed storage
+
+### Product UX
+- Brutalist dashboard UX tuned for records operations rather than consumer file browsing
+- Dedicated record, review, and governance workspaces
+- In-app sign-out confirmation that matches the application design system
+- Updated branding assets, including lock-based tab icon metadata
+
+## Architecture Overview
+
+City Vault uses a web application architecture with clear separation between UI, API routes, domain services, and persistence.
 
 ### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **UI Library**: React 19
-- **Styling**: Tailwind CSS 4
-- **TypeScript**: Full type safety
+- Next.js 16 App Router
+- React 19
+- Tailwind CSS 4
+- TypeScript
 
-### Backend
-- **API Routes**: Next.js API Routes
-- **Authentication**: NextAuth.js 4 with JWT sessions
-- **Database**: Neon Postgres (serverless)
-- **ORM**: Prisma 7 with Neon adapter
-- **File Storage**: IPFS via Pinata Web3 SDK
+### Backend and platform services
+- Next.js route handlers for application APIs
+- NextAuth.js with JWT-backed sessions
+- Prisma ORM for schema management and persistence
+- Neon Postgres for relational metadata storage
+- Pinata Web3 SDK for IPFS upload and pinning flows
 
-## 📋 Prerequisites
+### Data and domain concepts
+Core entities currently implemented include:
 
-Before you begin, ensure you have:
+- `User`
+- `Organization`
+- `Workspace`
+- `Membership`
+- `AuditEvent`
+- `Record`
+- `RecordVersion`
+- `ApprovalRequest`
+- `RetentionPolicy`
+- `LegalHold`
 
-- Node.js 20+ installed
-- A [Pinata](https://pinata.cloud/) account for IPFS storage
-- A [Neon](https://neon.tech/) Postgres database
-- npm, yarn, pnpm, or bun package manager
+At a high level:
+- relational metadata and workflow state live in Postgres
+- binary content is stored in IPFS via Pinata
+- the application resolves tenant context and authorization before handling record operations
+- governance actions are expressed through domain services rather than direct database mutation from the UI
 
-## 🚀 Getting Started
+## Why This Matters
 
-### 1. Clone the Repository
+Traditional upload tools solve file transfer. City Vault is intended to solve record control.
+
+That means the application is being built around industry-relevant concepts such as:
+
+- records governance
+- operational auditability
+- lifecycle management
+- retention enforcement
+- legal hold handling
+- disposition readiness
+- tenant isolation
+- role-based administration
+- evidence-grade version history
+- content-addressable retrieval
+
+The platform should be understood as an evolving records system with decentralized storage primitives, not merely an IPFS upload front end.
+
+## Key User Journeys
+
+### 1. Record intake
+A contributor or records manager creates a new record, provides baseline metadata, and uploads the first file version.
+
+### 2. Versioned maintenance
+Additional file revisions are appended as new record versions instead of overwriting previous content.
+
+### 3. Review processing
+Draft records can move through the review queue, receive reviewer actions, and transition through controlled lifecycle states.
+
+### 4. Governance control
+Approved or archived records can receive retention assignments, legal holds, and disposition actions based on policy and current state.
+
+### 5. Retrieval and inspection
+Users can browse the records workspace, inspect record detail pages, review version history, and follow CID-backed content links.
+
+## Security and Governance Posture
+
+City Vault currently includes foundational controls that support governance-heavy workflows:
+
+- bcrypt password hashing
+- authenticated route protection
+- tenant-aware session resolution
+- centralized authorization checks
+- role-specific action gating
+- append-oriented audit event infrastructure
+- legal-hold-based deletion/disposition blocking
+- workflow-aware mutation restrictions
+
+Important note: City Vault is governance-oriented, but this repository does not claim formal certification or regulatory compliance out of the box. Additional policy, deployment, operational, and legal controls would still be required for production use in regulated environments.
+
+## Repository Structure
+
+```text
+app/           Next.js app routes, dashboard surfaces, and API handlers
+components/    Shared UI components for records, review, governance, and auth
+lib/           Domain services, authorization, auth config, and persistence helpers
+prisma/        Prisma schema and migration history
+tests/         Vitest coverage for routes, authorization, tenant context, and governance flows
+public/        Static assets and browser-visible icons
+```
+
+## Getting Started
+
+### Prerequisites
+Make sure you have the following available before running the project locally:
+
+- Node.js 20 or newer
+- npm
+- a Postgres database, typically Neon Postgres in this project setup
+- a Pinata account with IPFS access
+- environment variables for database, auth, and Pinata integration
+
+### Installation
+Clone the repository and install dependencies:
 
 ```bash
 git clone <repo-url>
 cd city-vault
-```
-
-### 2. Install Dependencies
-
-```bash
 npm install
-# or
-yarn install
-# or
-pnpm install
 ```
 
-### 3. Environment Setup
-
-Create a `.env` file in the root directory with the following variables:
+### Environment Configuration
+Create a `.env` or `.env.local` file in the project root.
 
 ```env
-# Database
-DATABASE_URL="postgresql://username:password@your-neon-db-url/database"
-
-# NextAuth
-NEXTAUTH_SECRET="your-nextauth-secret-here"
+DATABASE_URL="postgresql://username:password@host/database"
+NEXTAUTH_SECRET="replace-with-a-secure-random-secret"
 NEXTAUTH_URL="http://localhost:3000"
-
-# Pinata IPFS
-PINATA_JWT="your-pinata-jwt-token"
+PINATA_JWT="replace-with-your-pinata-jwt"
 NEXT_PUBLIC_GATEWAY_URL="your-gateway-url.mypinata.cloud"
 ```
 
-#### Getting Your Environment Variables:
+#### Environment variable notes
+- `DATABASE_URL`: Postgres connection string used by Prisma
+- `NEXTAUTH_SECRET`: secret used to sign and validate auth tokens
+- `NEXTAUTH_URL`: base URL for local or deployed auth callbacks
+- `PINATA_JWT`: credential for upload and pinning operations
+- `NEXT_PUBLIC_GATEWAY_URL`: public IPFS gateway base used in client-visible links
 
-**DATABASE_URL**: 
-- Sign up at [Neon](https://neon.tech/)
-- Create a new project and database
-- Copy the connection string from your dashboard
+To generate a strong local auth secret:
 
-**NEXTAUTH_SECRET**: 
 ```bash
 openssl rand -base64 32
 ```
 
-**PINATA_JWT & NEXT_PUBLIC_GATEWAY_URL**:
-- Sign up at [Pinata](https://pinata.cloud/)
-- Navigate to API Keys and create a new JWT
-- Find your dedicated gateway URL in the Gateways section
+## Database Setup
 
-### 4. Database Setup
-
-Run Prisma migrations to set up your database schema:
+Generate the Prisma client and apply migrations:
 
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 ```
 
-### 5. Run the Development Server
+For local iterative development, you may prefer:
+
+```bash
+npx prisma migrate dev
+```
+
+## Running the Application
+
+Start the development server:
 
 ```bash
 npm run dev
@@ -105,58 +229,130 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🎯 Usage
+## Available Scripts
 
-### Registering a New User
-1. Navigate to the Register page
-2. Enter your name, email, and password
-3. Click "Register"
+```bash
+npm run dev      # start the Next.js development server
+npm run build    # create a production build
+npm run start    # run the production server
+npm run lint     # run ESLint
+npm run test     # run Vitest test suites
+```
 
-### Uploading Files
-1. Log in to your dashboard
-2. Click "Choose File" and select a file
-3. Click "Upload to IPFS"
-4. Your file will be uploaded and pinned to IPFS
+## Recommended Local Validation Flow
 
-### Managing Files
-- **View**: Click "View on IPFS" to open the file in a new tab
-- **Search**: Use the search bar to filter files by filename
-- **Delete**: Click the "Delete" button to remove a file
+After pulling changes or applying migrations, a practical smoke test looks like this:
 
-## 🔒 Security Features
+1. Register or sign in.
+2. Open the dashboard.
+3. Create a record with an initial file.
+4. Open the record detail page.
+5. Add a second record version.
+6. Submit the record for review.
+7. Process it through the review queue.
+8. Archive it when eligible.
+9. Assign a retention policy.
+10. Place and release a legal hold.
+11. Verify governance queue visibility and disposition safeguards.
 
-- Password hashing with bcrypt (10 salt rounds)
-- JWT-based session management
-- Server-side authentication checks
-- Protected API routes
-- Secure file ownership validation
+## API Surface Summary
 
-## 🤝 Contributing
+The platform currently exposes a mix of record-native and compatibility endpoints.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Record-native endpoints
+- `GET /api/records`
+- `POST /api/records`
+- `GET /api/records/:id`
+- `POST /api/records/:id/versions`
+- `DELETE /api/records/:id`
+- `POST /api/records/:id/review`
+- `POST /api/records/:id/review/approve`
+- `POST /api/records/:id/review/reject`
+- `POST /api/records/:id/archive`
+- `POST /api/records/:id/retention`
+- `POST /api/records/:id/holds`
+- `DELETE /api/records/:id/holds/:holdId`
+- `POST /api/records/:id/dispose`
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Governance and tenant endpoints
+- `GET /api/governance/queue`
+- `GET /api/retention-policies`
+- `GET /api/tenant/context`
+- `GET /api/review-queue`
+- `GET /api/reviewers`
 
-## 📄 License
+### Compatibility endpoints
+- `POST /api/upload`
+- `GET /api/files`
+- `DELETE /api/files/[cid]`
+
+These compatibility routes are transitional and exist to support the earlier file-centric product surface while the application completes its move to full record-native workflows.
+
+## Testing and Quality
+
+The repository includes automated tests for major platform foundations such as:
+
+- authorization behavior
+- tenant context resolution
+- record route behavior
+- governance routes
+- review and version flows
+
+Run the test suite:
+
+```bash
+npm run test
+```
+
+Run linting:
+
+```bash
+npm run lint
+```
+
+Run a type check if needed:
+
+```bash
+npx tsc --noEmit
+```
+
+## Known Development Notes
+
+- The project currently uses Google Fonts through `next/font`. In restricted or offline environments, production builds can fail if the font assets cannot be fetched.
+- Legacy file routes are still present for compatibility. The long-term product direction is record-first.
+- The repository is evolving quickly across sprint-based delivery, so schema changes should always be applied before running the latest workflows locally.
+
+## Roadmap Direction
+
+The implemented work already covers the platform foundation, records core, review workflow, and governance controls. Logical next areas include:
+
+- richer metadata schemas and classification models
+- saved search and retrieval enhancements
+- expanded audit explorer UX
+- verification receipts and stronger evidence exports
+- policy administration depth
+- optional proof anchoring integrations
+- production deployment hardening and observability
+
+## Contribution
+
+Contributions, ideas, issue reports, refactors, and implementation proposals are all welcome.
+
+There is intentionally no narrow contribution gate described here yet. If you want to improve the platform, you can open an issue, start a discussion, propose an architectural change, or submit a pull request in the style that best fits the work.
+
+If you are contributing code, it helps to:
+
+- explain the user or operational problem being solved
+- mention any schema or API contract changes
+- include validation notes such as tests, lint, or migration steps
+- call out governance, security, or authorization implications when relevant
+
+## Support
+
+Support remains open-ended by design.
+
+If you need help evaluating the platform, adapting it to your environment, understanding the current architecture, or contributing new capabilities, open an issue or start a discussion in the repository. If you are using City Vault in a more formal or organization-specific context, you can also adapt this section to your internal support and escalation model.
+
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React framework
-- [Pinata](https://pinata.cloud/) - IPFS pinning service
-- [Neon](https://neon.tech/) - Serverless Postgres
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-- [NextAuth.js](https://next-auth.js.org/) - Authentication for Next.js
-
-## 📧 Support
-
-For support, email swpnlmitra@gmail.com or open an issue in the GitHub repository.
-
----
-
-Built with ❤️ using Next.js and IPFS
