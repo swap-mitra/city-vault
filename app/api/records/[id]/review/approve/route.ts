@@ -6,10 +6,9 @@ import {
 } from "@/lib/authorization";
 import { getAuditRequestMetadata } from "@/lib/audit";
 import {
-  appendRecordVersion,
+  approveRecordReview,
   RecordConflictError,
 } from "@/lib/records";
-import { validateUploadFile } from "@/upload-validation";
 
 export async function POST(
   request: NextRequest,
@@ -23,27 +22,18 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    authorizeTenantAccess(currentUser, "records.version.create", {
+    authorizeTenantAccess(currentUser, "records.review.approve", {
       allowLegacyUserWithoutMembership: true,
     });
 
-    const formData = await request.formData();
-    const maybeFile = formData.get("file");
+    const body = (await request.json()) as {
+      decisionNotes?: string | null;
+    };
 
-    if (!(maybeFile instanceof File) || maybeFile.size === 0) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    const validationError = validateUploadFile(maybeFile);
-
-    if (validationError) {
-      return NextResponse.json({ error: validationError }, { status: 400 });
-    }
-
-    const updatedRecord = await appendRecordVersion({
+    const updatedRecord = await approveRecordReview({
       currentUser,
       recordId: id,
-      file: maybeFile,
+      decisionNotes: body.decisionNotes,
       requestMetadata: getAuditRequestMetadata(request),
     });
 
@@ -51,7 +41,7 @@ export async function POST(
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedRecord, { status: 201 });
+    return NextResponse.json(updatedRecord);
   } catch (error) {
     if (error instanceof AuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
@@ -61,9 +51,9 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
-    console.error("Record version create error:", error);
+    console.error("Record review approval error:", error);
     return NextResponse.json(
-      { error: "Failed to add record version" },
+      { error: "Failed to approve record" },
       { status: 500 }
     );
   }

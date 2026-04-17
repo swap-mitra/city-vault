@@ -8,6 +8,7 @@ import { getAuditRequestMetadata } from "@/lib/audit";
 import {
   deleteRecordAndVersions,
   getRecordDetail,
+  RecordConflictError,
 } from "@/lib/records";
 
 export async function GET(
@@ -80,6 +81,10 @@ export async function DELETE(
     });
   } catch (error) {
     if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    if (error instanceof RecordConflictError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 

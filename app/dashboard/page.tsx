@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { VaultDashboardClient } from "@/components/VaultDashboardClient";
 
 export default async function DashboardPage() {
@@ -25,7 +26,7 @@ export default async function DashboardPage() {
                   Own the record trail.
                 </h1>
                 <p className="max-w-xl text-base leading-8 paper-muted sm:text-lg">
-                  Create records, inspect version history, and add new file revisions from one place.
+                  Create records, route them through review, and keep version history and lifecycle state in one place.
                 </p>
               </div>
             </div>
@@ -61,6 +62,9 @@ export default async function DashboardPage() {
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <Link href="/dashboard/review" className="brutal-button brutal-button--ghost w-full sm:w-auto">
+                  Review queue
+                </Link>
                 <form action="/api/auth/signout" method="post" className="w-full sm:w-auto">
                   <button type="submit" className="brutal-button brutal-button--ghost w-full sm:w-auto">
                     Sign out

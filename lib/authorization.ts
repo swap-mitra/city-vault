@@ -7,6 +7,9 @@ export type Permission =
   | "records.create"
   | "records.delete"
   | "records.version.create"
+  | "records.review.submit"
+  | "records.review.approve"
+  | "records.archive"
   | "files.read"
   | "files.upload"
   | "files.delete"
@@ -41,6 +44,9 @@ const rolePermissions: Record<Role, Permission[]> = {
     "records.create",
     "records.delete",
     "records.version.create",
+    "records.review.submit",
+    "records.review.approve",
+    "records.archive",
     "files.read",
     "files.upload",
     "files.delete",
@@ -52,18 +58,28 @@ const rolePermissions: Record<Role, Permission[]> = {
     "records.create",
     "records.delete",
     "records.version.create",
+    "records.review.submit",
+    "records.review.approve",
+    "records.archive",
     "files.read",
     "files.upload",
     "files.delete",
     "audit.read",
   ],
-  REVIEWER: ["tenant.read", "records.read", "files.read", "audit.read"],
+  REVIEWER: [
+    "tenant.read",
+    "records.read",
+    "records.review.approve",
+    "files.read",
+    "audit.read",
+  ],
   CONTRIBUTOR: [
     "tenant.read",
     "records.read",
     "records.create",
     "records.delete",
     "records.version.create",
+    "records.review.submit",
     "files.read",
     "files.upload",
     "files.delete",

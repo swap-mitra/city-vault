@@ -6,10 +6,9 @@ import {
 } from "@/lib/authorization";
 import { getAuditRequestMetadata } from "@/lib/audit";
 import {
-  appendRecordVersion,
   RecordConflictError,
+  submitRecordForReview,
 } from "@/lib/records";
-import { validateUploadFile } from "@/upload-validation";
 
 export async function POST(
   request: NextRequest,
@@ -23,27 +22,27 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    authorizeTenantAccess(currentUser, "records.version.create", {
+    authorizeTenantAccess(currentUser, "records.review.submit", {
       allowLegacyUserWithoutMembership: true,
     });
 
-    const formData = await request.formData();
-    const maybeFile = formData.get("file");
+    const body = (await request.json()) as {
+      reviewerId?: string;
+      requestNotes?: string | null;
+    };
 
-    if (!(maybeFile instanceof File) || maybeFile.size === 0) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!body.reviewerId || body.reviewerId.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Reviewer is required." },
+        { status: 400 }
+      );
     }
 
-    const validationError = validateUploadFile(maybeFile);
-
-    if (validationError) {
-      return NextResponse.json({ error: validationError }, { status: 400 });
-    }
-
-    const updatedRecord = await appendRecordVersion({
+    const updatedRecord = await submitRecordForReview({
       currentUser,
       recordId: id,
-      file: maybeFile,
+      reviewerId: body.reviewerId,
+      requestNotes: body.requestNotes,
       requestMetadata: getAuditRequestMetadata(request),
     });
 
@@ -51,7 +50,7 @@ export async function POST(
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedRecord, { status: 201 });
+    return NextResponse.json(updatedRecord);
   } catch (error) {
     if (error instanceof AuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
@@ -61,9 +60,9 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
-    console.error("Record version create error:", error);
+    console.error("Record review submit error:", error);
     return NextResponse.json(
-      { error: "Failed to add record version" },
+      { error: "Failed to submit record for review" },
       { status: 500 }
     );
   }

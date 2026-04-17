@@ -15,6 +15,19 @@ enum Role {
   AUDITOR
 }
 
+enum RecordStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -23,11 +36,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  files                 File[]
-  records               Record[]
-  memberships           Membership[]
-  auditEvents           AuditEvent[]    @relation("AuditActor")
-  uploadedRecordVersions RecordVersion[] @relation("UploadedRecordVersion")
+  files                  File[]
+  records                Record[]
+  recordsForReview       Record[]          @relation("CurrentReviewer")
+  requestedApprovals     ApprovalRequest[] @relation("RequestedApproval")
+  assignedApprovals      ApprovalRequest[] @relation("ApprovalReviewer")
+  memberships            Membership[]
+  auditEvents            AuditEvent[]      @relation("AuditActor")
+  uploadedRecordVersions RecordVersion[]   @relation("UploadedRecordVersion")
 }
 
 model Organization {
@@ -63,24 +79,55 @@ model Workspace {
 }
 
 model Record {
-  id             String   @id @default(cuid())
-  title          String
-  description    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  userId         String
-  organizationId String?
-  workspaceId    String?
+  id                  String       @id @default(cuid())
+  title               String
+  description         String?
+  status              RecordStatus @default(DRAFT)
+  reviewerId          String?
+  reviewNotes         String?
+  submittedForReviewAt DateTime?
+  approvedAt          DateTime?
+  archivedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  userId              String
+  organizationId      String?
+  workspaceId         String?
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  versions     RecordVersion[]
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer         User?            @relation("CurrentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  organization     Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  workspace        Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  versions         RecordVersion[]
+  approvalRequests ApprovalRequest[]
 
   @@index([userId])
+  @@index([reviewerId])
   @@index([organizationId])
   @@index([workspaceId])
+  @@index([status])
   @@index([createdAt])
+}
+
+model ApprovalRequest {
+  id                String                @id @default(cuid())
+  recordId          String
+  requestedByUserId String
+  reviewerId        String
+  status            ApprovalRequestStatus @default(PENDING)
+  requestNotes      String?
+  decisionNotes     String?
+  submittedAt       DateTime              @default(now())
+  decidedAt         DateTime?
+
+  record      Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  requestedBy User   @relation("RequestedApproval", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  reviewer    User   @relation("ApprovalReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+  @@index([reviewerId, status])
+  @@index([requestedByUserId])
+  @@index([submittedAt])
 }
 
 model RecordVersion {
