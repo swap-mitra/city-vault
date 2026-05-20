@@ -28,6 +28,11 @@ enum ApprovalRequestStatus {
   REJECTED
 }
 
+enum MembershipStatus {
+  ACTIVE
+  DISABLED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -66,6 +71,7 @@ model Workspace {
   name           String
   slug           String
   organizationId String
+  isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -202,7 +208,10 @@ model Membership {
   organizationId String
   workspaceId    String
   role           Role
+  status         MembershipStatus @default(ACTIVE)
   isDefault      Boolean  @default(false)
+  invitedAt      DateTime?
+  addedByUserId  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -214,6 +223,7 @@ model Membership {
   @@unique([userId, workspaceId])
   @@index([organizationId])
   @@index([workspaceId])
+  @@index([status])
   @@index([userId, isDefault])
 }
 

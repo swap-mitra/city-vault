@@ -87,6 +87,15 @@ export default async function DashboardPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                {session.user.role === "ORG_ADMIN" && (
+                  <Link
+                    href="/dashboard/admin"
+                    className="brutal-button brutal-button--ghost w-full justify-between"
+                  >
+                    <span>Admin console</span>
+                    <span aria-hidden="true">/</span>
+                  </Link>
+                )}
                 <Link href="/dashboard/review" className="brutal-button brutal-button--ghost w-full justify-between">
                   <span>Review queue</span>
                   <span aria-hidden="true">/</span>

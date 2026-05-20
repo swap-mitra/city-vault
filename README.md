@@ -26,6 +26,7 @@ This makes the platform suitable for internal records teams, compliance-oriented
 - Role-based access control for `ORG_ADMIN`, `RECORDS_MANAGER`, `REVIEWER`, `CONTRIBUTOR`, `READ_ONLY`, and `AUDITOR`
 - Tenant-aware session context and server-side authorization checks
 - Centralized permission mapping for record, workflow, and governance actions
+- Admin console for workspace creation, existing-user member assignment, role changes, default workspace selection, and membership disablement
 
 ### Records core
 - Record-centric data model with `Record` and `RecordVersion`
@@ -85,6 +86,7 @@ Core entities currently implemented include:
 - `Organization`
 - `Workspace`
 - `Membership`
+- `MembershipStatus`
 - `AuditEvent`
 - `Record`
 - `RecordVersion`
@@ -254,6 +256,7 @@ After pulling changes or applying migrations, a practical smoke test looks like 
 9. Assign a retention policy.
 10. Place and release a legal hold.
 11. Verify governance queue visibility and disposition safeguards.
+12. Open the admin console as an `ORG_ADMIN` and verify workspace/member/role administration.
 
 ## API Surface Summary
 
@@ -275,6 +278,11 @@ The platform currently exposes a mix of record-native and compatibility endpoint
 - `POST /api/records/:id/dispose`
 
 ### Governance and tenant endpoints
+- `GET /api/admin/tenant`
+- `POST /api/admin/workspaces`
+- `POST /api/admin/members`
+- `PATCH /api/admin/members/:membershipId`
+- `DELETE /api/admin/members/:membershipId`
 - `GET /api/governance/queue`
 - `GET /api/retention-policies`
 - `GET /api/tenant/context`

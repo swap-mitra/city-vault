@@ -14,7 +14,13 @@ export async function resolveActiveMembership(
   userId: string
 ): Promise<ActiveMembership | null> {
   const membership = await prisma.membership.findFirst({
-    where: { userId },
+    where: {
+      userId,
+      status: "ACTIVE",
+      workspace: {
+        isActive: true,
+      },
+    },
     include: {
       organization: true,
       workspace: true,
