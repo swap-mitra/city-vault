@@ -90,6 +90,13 @@ model Record {
   id                   String       @id @default(cuid())
   title                String
   description          String?
+  recordType           String?
+  classification       String?
+  department           String?
+  documentNumber       String?
+  tags                 String[]     @default([])
+  effectiveDate        DateTime?
+  expiryDate           DateTime?
   status               RecordStatus @default(DRAFT)
   reviewerId           String?
   reviewNotes          String?
@@ -119,6 +126,12 @@ model Record {
   @@index([organizationId])
   @@index([workspaceId])
   @@index([status])
+  @@index([recordType])
+  @@index([classification])
+  @@index([department])
+  @@index([documentNumber])
+  @@index([effectiveDate])
+  @@index([expiryDate])
   @@index([retentionPolicyId])
   @@index([retentionExpiresAt])
   @@index([createdAt])
@@ -186,6 +199,7 @@ model RecordVersion {
   recordId         String
   versionNumber    Int
   cid              String
+  checksumSha256   String?
   originalFilename String
   fileSize         Int
   mimeType         String?
@@ -197,6 +211,7 @@ model RecordVersion {
 
   @@unique([recordId, versionNumber])
   @@index([cid])
+  @@index([checksumSha256])
   @@index([recordId])
   @@index([uploadedByUserId])
   @@index([uploadedAt])

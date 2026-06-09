@@ -1,17 +1,5 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Bebas_Neue, Public_Sans } from "next/font/google";
-
-const displayFont = Bebas_Neue({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-display",
-});
-
-const bodyFont = Public_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
 
 export const metadata: Metadata = {
   title: "City Vault",
@@ -30,9 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${displayFont.variable} ${bodyFont.variable}`}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

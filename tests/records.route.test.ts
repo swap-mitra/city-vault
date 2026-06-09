@@ -42,6 +42,16 @@ describe("records route", () => {
         recordId: "record-1",
         title: "Compliance register",
         description: "Monthly summary",
+        recordType: "Register",
+        classification: "Internal",
+        department: "Compliance",
+        documentNumber: "CV-001",
+        tags: ["audit"],
+        effectiveDate: null,
+        expiryDate: null,
+        status: "DRAFT",
+        activeHoldCount: 0,
+        retentionExpiresAt: null,
         createdAt: "2026-04-15T00:00:00.000Z",
         updatedAt: "2026-04-15T00:00:00.000Z",
         versionCount: 2,
@@ -49,6 +59,7 @@ describe("records route", () => {
           id: "version-2",
           versionNumber: 2,
           cid: "cid-2",
+          checksumSha256: "hash-2",
           originalFilename: "register-v2.pdf",
           fileSize: 1024,
           mimeType: "application/pdf",
@@ -59,13 +70,16 @@ describe("records route", () => {
     ]);
 
     const response = await GET(
-      new Request("http://localhost/api/records?query=compliance") as never
+      new Request("http://localhost/api/records?query=compliance&classification=Internal") as never
     );
 
     expect(response.status).toBe(200);
     expect(mocks.listRecords).toHaveBeenCalledWith(
       expect.objectContaining({ id: "user-1" }),
-      "compliance"
+      expect.objectContaining({
+        query: "compliance",
+        classification: "Internal",
+      })
     );
     await expect(response.json()).resolves.toMatchObject([
       {
@@ -79,6 +93,9 @@ describe("records route", () => {
     const formData = new FormData();
     formData.append("title", "Compliance register");
     formData.append("description", "Monthly summary");
+    formData.append("classification", "Internal");
+    formData.append("department", "Compliance");
+    formData.append("tags", "audit, monthly");
     formData.append(
       "file",
       new File(["pdf"], "register.pdf", { type: "application/pdf" })
@@ -88,6 +105,16 @@ describe("records route", () => {
       recordId: "record-1",
       title: "Compliance register",
       description: "Monthly summary",
+      recordType: null,
+      classification: "Internal",
+      department: "Compliance",
+      documentNumber: null,
+      tags: ["audit", "monthly"],
+      effectiveDate: null,
+      expiryDate: null,
+      status: "DRAFT",
+      activeHoldCount: 0,
+      retentionExpiresAt: null,
       createdAt: "2026-04-15T00:00:00.000Z",
       updatedAt: "2026-04-15T00:00:00.000Z",
       versionCount: 1,
@@ -95,6 +122,7 @@ describe("records route", () => {
         id: "version-1",
         versionNumber: 1,
         cid: "cid-1",
+        checksumSha256: "hash-1",
         originalFilename: "register.pdf",
         fileSize: 1024,
         mimeType: "application/pdf",
@@ -116,6 +144,9 @@ describe("records route", () => {
       expect.objectContaining({
         title: "Compliance register",
         description: "Monthly summary",
+        classification: "Internal",
+        department: "Compliance",
+        tags: "audit, monthly",
       })
     );
     await expect(response.json()).resolves.toMatchObject({

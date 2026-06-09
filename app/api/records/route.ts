@@ -8,6 +8,7 @@ import { getAuditRequestMetadata } from "@/lib/audit";
 import {
   createRecordWithInitialVersion,
   listRecords,
+  type RecordListFilters,
 } from "@/lib/records";
 import { validateUploadFile } from "@/upload-validation";
 
@@ -24,8 +25,33 @@ export async function GET(request: NextRequest) {
     });
 
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get("query")?.trim() || undefined;
-    const records = await listRecords(currentUser, query);
+    const status = searchParams.get("status")?.trim() || undefined;
+    const validStatuses = ["DRAFT", "UNDER_REVIEW", "APPROVED", "ARCHIVED"];
+    const filters: RecordListFilters = {
+      query: searchParams.get("query")?.trim() || undefined,
+      status: status && validStatuses.includes(status) ? (status as RecordListFilters["status"]) : undefined,
+      recordType: searchParams.get("recordType")?.trim() || undefined,
+      classification: searchParams.get("classification")?.trim() || undefined,
+      department: searchParams.get("department")?.trim() || undefined,
+      tag: searchParams.get("tag")?.trim() || undefined,
+      documentNumber: searchParams.get("documentNumber")?.trim() || undefined,
+      cid: searchParams.get("cid")?.trim() || undefined,
+      checksumSha256: searchParams.get("checksumSha256")?.trim() || undefined,
+      holdState: searchParams.get("holdState") === "held" || searchParams.get("holdState") === "clear"
+        ? (searchParams.get("holdState") as RecordListFilters["holdState"])
+        : undefined,
+      retentionState:
+        searchParams.get("retentionState") === "assigned" ||
+        searchParams.get("retentionState") === "unassigned" ||
+        searchParams.get("retentionState") === "due"
+          ? (searchParams.get("retentionState") as RecordListFilters["retentionState"])
+          : undefined,
+      effectiveFrom: searchParams.get("effectiveFrom")?.trim() || undefined,
+      effectiveTo: searchParams.get("effectiveTo")?.trim() || undefined,
+      expiryFrom: searchParams.get("expiryFrom")?.trim() || undefined,
+      expiryTo: searchParams.get("expiryTo")?.trim() || undefined,
+    };
+    const records = await listRecords(currentUser, filters);
 
     return NextResponse.json(records);
   } catch (error) {
@@ -56,6 +82,13 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const title = formData.get("title");
     const description = formData.get("description");
+    const recordType = formData.get("recordType");
+    const classification = formData.get("classification");
+    const department = formData.get("department");
+    const documentNumber = formData.get("documentNumber");
+    const tags = formData.get("tags");
+    const effectiveDate = formData.get("effectiveDate");
+    const expiryDate = formData.get("expiryDate");
     const maybeFile = formData.get("file");
 
     if (typeof title !== "string" || title.trim().length === 0) {
@@ -79,6 +112,13 @@ export async function POST(request: NextRequest) {
       currentUser,
       title,
       description: typeof description === "string" ? description : null,
+      recordType: typeof recordType === "string" ? recordType : null,
+      classification: typeof classification === "string" ? classification : null,
+      department: typeof department === "string" ? department : null,
+      documentNumber: typeof documentNumber === "string" ? documentNumber : null,
+      tags: typeof tags === "string" ? tags : null,
+      effectiveDate: typeof effectiveDate === "string" ? effectiveDate : null,
+      expiryDate: typeof expiryDate === "string" ? expiryDate : null,
       file: maybeFile,
       requestMetadata: getAuditRequestMetadata(request),
     });

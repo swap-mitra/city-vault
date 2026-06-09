@@ -18,6 +18,7 @@ type RecordVersion = {
   id: string;
   versionNumber: number;
   cid: string;
+  checksumSha256: string | null;
   originalFilename: string;
   fileSize: number;
   mimeType: string | null;
@@ -65,6 +66,13 @@ type RecordDetail = {
   recordId: string;
   title: string;
   description: string | null;
+  recordType: string | null;
+  classification: string | null;
+  department: string | null;
+  documentNumber: string | null;
+  tags: string[];
+  effectiveDate: string | null;
+  expiryDate: string | null;
   status: "DRAFT" | "UNDER_REVIEW" | "APPROVED" | "ARCHIVED";
   reviewNotes: string | null;
   submittedForReviewAt: string | null;
@@ -663,6 +671,19 @@ export function RecordDetailClient({
               <p className="max-w-2xl text-base leading-8 text-[var(--muted)] sm:text-lg">
                 {record.description || "No additional description has been added to this record yet."}
               </p>
+              <div className="flex flex-wrap gap-2">
+                {record.recordType && <span className="brutal-chip">{record.recordType}</span>}
+                {record.classification && <span className="brutal-chip">{record.classification}</span>}
+                {record.department && <span className="brutal-chip">{record.department}</span>}
+                {record.documentNumber && <span className="brutal-chip">{record.documentNumber}</span>}
+                {record.effectiveDate && <span className="brutal-chip">Effective {formatDate(record.effectiveDate)}</span>}
+                {record.expiryDate && <span className="brutal-chip">Expires {formatDate(record.expiryDate)}</span>}
+                {record.tags.map((tag) => (
+                  <span key={tag} className="brutal-chip">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1109,12 +1130,20 @@ export function RecordDetailClient({
                     </div>
                   </div>
 
-                  <div className="brutal-callout">
-                    <p className="metric-label">CID</p>
-                    <p className="mt-2 break-all text-sm font-semibold leading-7 text-[var(--ink)]">
-                      {version.cid}
-                    </p>
-                  </div>
+	                  <div className="brutal-callout">
+	                    <p className="metric-label">CID</p>
+	                    <p className="mt-2 break-all text-sm font-semibold leading-7 text-[var(--ink)]">
+	                      {version.cid}
+	                    </p>
+	                    {version.checksumSha256 && (
+	                      <>
+	                        <p className="metric-label mt-4">SHA-256</p>
+	                        <p className="mt-2 break-all text-sm font-semibold leading-7 text-[var(--ink)]">
+	                          {version.checksumSha256}
+	                        </p>
+	                      </>
+	                    )}
+	                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 xl:max-w-[17rem] xl:justify-end">

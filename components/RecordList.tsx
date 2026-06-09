@@ -9,6 +9,7 @@ type RecordVersionSummary = {
   id: string;
   versionNumber: number;
   cid: string;
+  checksumSha256: string | null;
   originalFilename: string;
   fileSize: number;
   mimeType: string | null;
@@ -20,6 +21,16 @@ type RecordSummary = {
   recordId: string;
   title: string;
   description: string | null;
+  recordType: string | null;
+  classification: string | null;
+  department: string | null;
+  documentNumber: string | null;
+  tags: string[];
+  effectiveDate: string | null;
+  expiryDate: string | null;
+  status: "DRAFT" | "UNDER_REVIEW" | "APPROVED" | "ARCHIVED";
+  activeHoldCount: number;
+  retentionExpiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   versionCount: number;
@@ -34,6 +45,16 @@ type RecordListProps = {
 export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
   const [records, setRecords] = useState<RecordSummary[]>([]);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [classification, setClassification] = useState("");
+  const [department, setDepartment] = useState("");
+  const [recordType, setRecordType] = useState("");
+  const [tag, setTag] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [cid, setCid] = useState("");
+  const [checksumSha256, setChecksumSha256] = useState("");
+  const [holdState, setHoldState] = useState("");
+  const [retentionState, setRetentionState] = useState("");
   const [loading, setLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
@@ -43,6 +64,33 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const trimmedSearch = useMemo(() => search.trim(), [search]);
+  const activeFilterCount = useMemo(
+    () =>
+      [
+        status,
+        classification,
+        department,
+        recordType,
+        tag,
+        documentNumber,
+        cid,
+        checksumSha256,
+        holdState,
+        retentionState,
+      ].filter((value) => value.trim().length > 0).length,
+    [
+      status,
+      classification,
+      department,
+      recordType,
+      tag,
+      documentNumber,
+      cid,
+      checksumSha256,
+      holdState,
+      retentionState,
+    ]
+  );
   const totalVersions = useMemo(
     () => records.reduce((sum, record) => sum + record.versionCount, 0),
     [records]
@@ -63,15 +111,46 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
     [records]
   );
 
+  const buildRecordsUrl = useCallback(
+    (query?: string) => {
+      const params = new URLSearchParams();
+
+      if (query) params.set("query", query);
+      if (status) params.set("status", status);
+      if (classification.trim()) params.set("classification", classification.trim());
+      if (department.trim()) params.set("department", department.trim());
+      if (recordType.trim()) params.set("recordType", recordType.trim());
+      if (tag.trim()) params.set("tag", tag.trim());
+      if (documentNumber.trim()) params.set("documentNumber", documentNumber.trim());
+      if (cid.trim()) params.set("cid", cid.trim());
+      if (checksumSha256.trim()) params.set("checksumSha256", checksumSha256.trim());
+      if (holdState) params.set("holdState", holdState);
+      if (retentionState) params.set("retentionState", retentionState);
+
+      const queryString = params.toString();
+      return queryString ? `/api/records?${queryString}` : "/api/records";
+    },
+    [
+      status,
+      classification,
+      department,
+      recordType,
+      tag,
+      documentNumber,
+      cid,
+      checksumSha256,
+      holdState,
+      retentionState,
+    ]
+  );
+
   const loadRecords = useCallback(
     async (query?: string, signal?: AbortSignal) => {
       setLoading(true);
       setListError(null);
 
       try {
-        const url = query
-          ? `/api/records?query=${encodeURIComponent(query)}`
-          : "/api/records";
+        const url = buildRecordsUrl(query);
         const response = await fetch(url, {
           signal,
           cache: "no-store",
@@ -101,7 +180,7 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
         }
       }
     },
-    [onNotice]
+    [buildRecordsUrl, onNotice]
   );
 
   useEffect(() => {
@@ -173,6 +252,20 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
     }
   };
 
+  const clearAllFilters = () => {
+    setSearch("");
+    setStatus("");
+    setClassification("");
+    setDepartment("");
+    setRecordType("");
+    setTag("");
+    setDocumentNumber("");
+    setCid("");
+    setChecksumSha256("");
+    setHoldState("");
+    setRetentionState("");
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -188,11 +281,11 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
     return date.toLocaleDateString();
   };
 
-  const emptyStateTitle = trimmedSearch
-    ? `No records match "${trimmedSearch}"`
+  const emptyStateTitle = trimmedSearch || activeFilterCount > 0
+    ? "No records match the current filters"
     : "No records created yet";
-  const emptyStateDescription = trimmedSearch
-    ? "Try another title or clear the filter to see the full workspace."
+  const emptyStateDescription = trimmedSearch || activeFilterCount > 0
+    ? "Adjust the search, metadata, hold, or retention filters to widen the result set."
     : "Create your first record to start building a versioned archive.";
 
   return (
@@ -275,16 +368,94 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
             </div>
             <button
               onClick={() => {
-                if (trimmedSearch) {
-                  setSearch("");
+                if (trimmedSearch || activeFilterCount > 0) {
+                  clearAllFilters();
                 } else {
                   void loadRecords(undefined);
                 }
               }}
               className="brutal-button brutal-button--ghost"
             >
-              {trimmedSearch ? "Clear" : "Refresh"}
+              {trimmedSearch || activeFilterCount > 0 ? "Clear" : "Refresh"}
             </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <select
+              className="brutal-input"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="">Any status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="UNDER_REVIEW">Under review</option>
+              <option value="APPROVED">Approved</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+            <input
+              className="brutal-input"
+              value={classification}
+              onChange={(event) => setClassification(event.target.value)}
+              placeholder="Classification"
+            />
+            <input
+              className="brutal-input"
+              value={department}
+              onChange={(event) => setDepartment(event.target.value)}
+              placeholder="Department"
+            />
+            <input
+              className="brutal-input"
+              value={recordType}
+              onChange={(event) => setRecordType(event.target.value)}
+              placeholder="Record type"
+            />
+            <input
+              className="brutal-input"
+              value={tag}
+              onChange={(event) => setTag(event.target.value)}
+              placeholder="Tag"
+            />
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <input
+              className="brutal-input"
+              value={documentNumber}
+              onChange={(event) => setDocumentNumber(event.target.value)}
+              placeholder="Document number"
+            />
+            <input
+              className="brutal-input"
+              value={cid}
+              onChange={(event) => setCid(event.target.value)}
+              placeholder="CID lookup"
+            />
+            <input
+              className="brutal-input"
+              value={checksumSha256}
+              onChange={(event) => setChecksumSha256(event.target.value)}
+              placeholder="SHA-256 lookup"
+            />
+            <select
+              className="brutal-input"
+              value={holdState}
+              onChange={(event) => setHoldState(event.target.value)}
+            >
+              <option value="">Any hold state</option>
+              <option value="held">Active hold</option>
+              <option value="clear">No active hold</option>
+            </select>
+            <select
+              className="brutal-input"
+              value={retentionState}
+              onChange={(event) => setRetentionState(event.target.value)}
+            >
+              <option value="">Any retention</option>
+              <option value="assigned">Assigned</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="due">Due</option>
+            </select>
           </div>
 
           {listError && (
@@ -321,13 +492,13 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
               <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {emptyStateDescription}
               </p>
-              {trimmedSearch && (
+              {(trimmedSearch || activeFilterCount > 0) && (
                 <div className="mt-6">
                   <button
-                    onClick={() => setSearch("")}
+                    onClick={clearAllFilters}
                     className="brutal-button brutal-button--ghost"
                   >
-                    Clear search
+                    Clear filters
                   </button>
                 </div>
               )}
@@ -358,9 +529,12 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
                               {record.title}
                             </h3>
                             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)] sm:gap-3">
+                              <span>{record.status.replaceAll("_", " ")}</span>
                               <span>{record.versionCount} version{record.versionCount === 1 ? "" : "s"}</span>
                               <span>{record.latestVersion.originalFilename}</span>
                               <span>{formatDate(record.latestVersion.uploadedAt)}</span>
+                              {record.classification && <span>{record.classification}</span>}
+                              {record.department && <span>{record.department}</span>}
                             </div>
                           </div>
                         </div>
@@ -371,12 +545,37 @@ export function RecordList({ refreshToken = 0, onNotice }: RecordListProps) {
                           </p>
                         )}
 
+                        {(record.recordType ||
+                          record.documentNumber ||
+                          record.tags.length > 0 ||
+                          record.activeHoldCount > 0 ||
+                          record.retentionExpiresAt) && (
+                          <div className="flex flex-wrap gap-2">
+                            {record.recordType && <span className="brutal-chip">{record.recordType}</span>}
+                            {record.documentNumber && <span className="brutal-chip">{record.documentNumber}</span>}
+                            {record.activeHoldCount > 0 && <span className="brutal-chip">Hold active</span>}
+                            {record.retentionExpiresAt && (
+                              <span className="brutal-chip">Retention {formatDate(record.retentionExpiresAt)}</span>
+                            )}
+                            {record.tags.map((tag) => (
+                              <span key={tag} className="brutal-chip">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="brutal-callout">
                             <p className="metric-label">Latest CID</p>
                             <p className="mt-2 break-all text-sm font-semibold leading-7 text-[var(--ink)]">
                               {record.latestVersion.cid}
                             </p>
+                            {record.latestVersion.checksumSha256 && (
+                              <p className="mt-2 break-all text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
+                                SHA-256 {record.latestVersion.checksumSha256}
+                              </p>
+                            )}
                           </div>
                           <div className="brutal-callout">
                             <p className="metric-label">Latest file</p>

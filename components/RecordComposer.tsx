@@ -17,6 +17,13 @@ type RecordComposerProps = {
 export function RecordComposer({ onCreated, onNotice }: RecordComposerProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [recordType, setRecordType] = useState("");
+  const [classification, setClassification] = useState("");
+  const [department, setDepartment] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [tags, setTags] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -60,6 +67,13 @@ export function RecordComposer({ onCreated, onNotice }: RecordComposerProps) {
     const formData = new FormData();
     formData.append("title", title.trim());
     formData.append("description", description.trim());
+    formData.append("recordType", recordType.trim());
+    formData.append("classification", classification.trim());
+    formData.append("department", department.trim());
+    formData.append("documentNumber", documentNumber.trim());
+    formData.append("tags", tags.trim());
+    formData.append("effectiveDate", effectiveDate);
+    formData.append("expiryDate", expiryDate);
     formData.append("file", file);
 
     try {
@@ -80,6 +94,13 @@ export function RecordComposer({ onCreated, onNotice }: RecordComposerProps) {
       });
       setTitle("");
       setDescription("");
+      setRecordType("");
+      setClassification("");
+      setDepartment("");
+      setDocumentNumber("");
+      setTags("");
+      setEffectiveDate("");
+      setExpiryDate("");
       setFile(null);
     } catch (error) {
       console.error(error);
@@ -197,6 +218,96 @@ export function RecordComposer({ onCreated, onNotice }: RecordComposerProps) {
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Optional context for the record."
               />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Record type
+                </label>
+                <input
+                  className="brutal-input"
+                  value={recordType}
+                  onChange={(event) => setRecordType(event.target.value)}
+                  placeholder="Policy"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Classification
+                </label>
+                <input
+                  className="brutal-input"
+                  value={classification}
+                  onChange={(event) => setClassification(event.target.value)}
+                  placeholder="Internal"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Department
+                </label>
+                <input
+                  className="brutal-input"
+                  value={department}
+                  onChange={(event) => setDepartment(event.target.value)}
+                  placeholder="Records"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Document number
+                </label>
+                <input
+                  className="brutal-input"
+                  value={documentNumber}
+                  onChange={(event) => setDocumentNumber(event.target.value)}
+                  placeholder="CV-2026-001"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                Tags
+              </label>
+              <input
+                className="brutal-input"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                placeholder="audit, policy, q2"
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Effective date
+                </label>
+                <input
+                  type="date"
+                  className="brutal-input"
+                  value={effectiveDate}
+                  onChange={(event) => setEffectiveDate(event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Expiry date
+                </label>
+                <input
+                  type="date"
+                  className="brutal-input"
+                  value={expiryDate}
+                  onChange={(event) => setExpiryDate(event.target.value)}
+                />
+              </div>
             </div>
 
             <div>

@@ -30,10 +30,12 @@ This makes the platform suitable for internal records teams, compliance-oriented
 
 ### Records core
 - Record-centric data model with `Record` and `RecordVersion`
-- Create a record with title, optional description, and an initial uploaded file
+- Create a record with title, optional description, metadata, and an initial uploaded file
 - Append new versions to an existing record
 - Latest-version summaries in list views
 - Dedicated record detail screen with full version history
+- Metadata support for record type, classification, department, document number, tags, effective date, and expiry date
+- SHA-256 checksums on uploaded record versions for stronger integrity and evidence handling
 - Compatibility shims for legacy file endpoints while the platform transitions fully to records
 
 ### Workflow and lifecycle
@@ -58,7 +60,7 @@ This makes the platform suitable for internal records teams, compliance-oriented
 
 ### Product UX
 - Brutalist dashboard UX tuned for records operations rather than consumer file browsing
-- Dedicated record, review, and governance workspaces
+- Dedicated record, review, governance, audit, and administration workspaces
 - In-app sign-out confirmation that matches the application design system
 - Updated branding assets, including lock-based tab icon metadata
 
@@ -93,6 +95,7 @@ Core entities currently implemented include:
 - `ApprovalRequest`
 - `RetentionPolicy`
 - `LegalHold`
+- version-level checksum evidence
 
 At a high level:
 - relational metadata and workflow state live in Postgres
@@ -109,6 +112,8 @@ That means the application is being built around industry-relevant concepts such
 - records governance
 - operational auditability
 - lifecycle management
+- metadata-driven retrieval
+- audit trail inspection
 - retention enforcement
 - legal hold handling
 - disposition readiness
@@ -257,6 +262,7 @@ After pulling changes or applying migrations, a practical smoke test looks like 
 10. Place and release a legal hold.
 11. Verify governance queue visibility and disposition safeguards.
 12. Open the admin console as an `ORG_ADMIN` and verify workspace/member/role administration.
+13. Open the audit explorer and filter recent events by action, actor, target type, or date.
 
 ## API Surface Summary
 
@@ -278,6 +284,7 @@ The platform currently exposes a mix of record-native and compatibility endpoint
 - `POST /api/records/:id/dispose`
 
 ### Governance and tenant endpoints
+- `GET /api/audit/events`
 - `GET /api/admin/tenant`
 - `POST /api/admin/workspaces`
 - `POST /api/admin/members`

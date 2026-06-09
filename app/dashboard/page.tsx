@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { VaultDashboardClient } from "@/components/VaultDashboardClient";
 import { SignOutButton } from "@/components/SignOutButton";
+import { hasPermission } from "@/lib/authorization";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -107,6 +108,15 @@ export default async function DashboardPage() {
                   <span>Governance queue</span>
                   <span aria-hidden="true">/</span>
                 </Link>
+                {session.user.role && hasPermission(session.user.role, "audit.read") && (
+                  <Link
+                    href="/dashboard/audit"
+                    className="brutal-button brutal-button--ghost w-full justify-between"
+                  >
+                    <span>Audit explorer</span>
+                    <span aria-hidden="true">/</span>
+                  </Link>
+                )}
                 <SignOutButton />
               </div>
             </div>

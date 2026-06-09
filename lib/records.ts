@@ -1,4 +1,5 @@
-import type { Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
+import type { Prisma, RecordStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getGatewayUrl, getPinataClient } from "@/lib/pinata";
 import type { CurrentUser } from "@/current-user";
@@ -147,6 +148,7 @@ export type RecordVersionPayload = {
   id: string;
   versionNumber: number;
   cid: string;
+  checksumSha256: string | null;
   originalFilename: string;
   fileSize: number;
   mimeType: string | null;
@@ -158,6 +160,13 @@ export type RecordSummaryPayload = {
   recordId: string;
   title: string;
   description: string | null;
+  recordType: string | null;
+  classification: string | null;
+  department: string | null;
+  documentNumber: string | null;
+  tags: string[];
+  effectiveDate: string | null;
+  expiryDate: string | null;
   status: "DRAFT" | "UNDER_REVIEW" | "APPROVED" | "ARCHIVED";
   reviewNotes: string | null;
   submittedForReviewAt: string | null;
@@ -341,13 +350,21 @@ function serializeLegalHold(
 function serializeVersion(
   version: Pick<
     Prisma.RecordVersionGetPayload<object>,
-    "id" | "versionNumber" | "cid" | "originalFilename" | "fileSize" | "mimeType" | "uploadedAt"
+    | "id"
+    | "versionNumber"
+    | "cid"
+    | "checksumSha256"
+    | "originalFilename"
+    | "fileSize"
+    | "mimeType"
+    | "uploadedAt"
   >
 ): RecordVersionPayload {
   return {
     id: version.id,
     versionNumber: version.versionNumber,
     cid: version.cid,
+    checksumSha256: version.checksumSha256,
     originalFilename: version.originalFilename,
     fileSize: version.fileSize,
     mimeType: version.mimeType,
@@ -393,6 +410,13 @@ function serializeRecordSummary(record: RecordListRow): RecordSummaryPayload {
     recordId: record.id,
     title: record.title,
     description: record.description,
+    recordType: record.recordType,
+    classification: record.classification,
+    department: record.department,
+    documentNumber: record.documentNumber,
+    tags: record.tags,
+    effectiveDate: record.effectiveDate?.toISOString() ?? null,
+    expiryDate: record.expiryDate?.toISOString() ?? null,
     status: record.status,
     reviewNotes: record.reviewNotes,
     submittedForReviewAt: record.submittedForReviewAt?.toISOString() ?? null,
@@ -419,6 +443,13 @@ function serializeRecordDetail(record: RecordDetailRow): RecordDetailPayload {
     recordId: record.id,
     title: record.title,
     description: record.description,
+    recordType: record.recordType,
+    classification: record.classification,
+    department: record.department,
+    documentNumber: record.documentNumber,
+    tags: record.tags,
+    effectiveDate: record.effectiveDate?.toISOString() ?? null,
+    expiryDate: record.expiryDate?.toISOString() ?? null,
     status: record.status,
     reviewNotes: record.reviewNotes,
     submittedForReviewAt: record.submittedForReviewAt?.toISOString() ?? null,
@@ -451,6 +482,36 @@ function buildAuditActor(currentUser: CurrentUser) {
     organizationId: currentUser.organizationId,
     workspaceId: currentUser.workspaceId,
   };
+}
+
+function normalizeOptionalText(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function parseTags(value?: string | null) {
+  return [
+    ...new Set(
+      (value ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    ),
+  ];
+}
+
+function parseDate(value?: string | null) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+async function calculateFileChecksumSha256(file: File) {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return createHash("sha256").update(buffer).digest("hex");
 }
 
 function calculateRetentionExpiry(referenceDate: Date, retentionDays: number) {
@@ -583,6 +644,13 @@ async function purgeRecordAndVersions({
         id: record.id,
         title: record.title,
         description: record.description,
+        recordType: record.recordType,
+        classification: record.classification,
+        department: record.department,
+        documentNumber: record.documentNumber,
+        tags: record.tags,
+        effectiveDate: record.effectiveDate,
+        expiryDate: record.expiryDate,
         status: record.status,
         reviewerId: record.reviewerId,
         reviewNotes: record.reviewNotes,
@@ -602,6 +670,7 @@ async function purgeRecordAndVersions({
             id: version.id,
             versionNumber: version.versionNumber,
             cid: version.cid,
+            checksumSha256: version.checksumSha256,
             originalFilename: version.originalFilename,
             fileSize: version.fileSize,
             mimeType: version.mimeType,
@@ -661,26 +730,141 @@ async function purgeRecordAndVersions({
   };
 }
 
-export async function listRecords(currentUser: CurrentUser, query?: string) {
+export type RecordListFilters = {
+  query?: string;
+  status?: RecordStatus;
+  recordType?: string;
+  classification?: string;
+  department?: string;
+  tag?: string;
+  documentNumber?: string;
+  cid?: string;
+  checksumSha256?: string;
+  holdState?: "held" | "clear";
+  retentionState?: "assigned" | "unassigned" | "due";
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  expiryFrom?: string;
+  expiryTo?: string;
+};
+
+export async function listRecords(currentUser: CurrentUser, filters: RecordListFilters = {}) {
   const where: Prisma.RecordWhereInput = {
     ...buildReadableRecordScope(currentUser),
   };
 
-  if (query) {
+  if (filters.query) {
     where.OR = [
       {
         title: {
-          contains: query,
+          contains: filters.query,
           mode: "insensitive",
         },
       },
       {
         description: {
-          contains: query,
+          contains: filters.query,
           mode: "insensitive",
         },
       },
+      {
+        recordType: {
+          contains: filters.query,
+          mode: "insensitive",
+        },
+      },
+      {
+        classification: {
+          contains: filters.query,
+          mode: "insensitive",
+        },
+      },
+      {
+        department: {
+          contains: filters.query,
+          mode: "insensitive",
+        },
+      },
+      {
+        documentNumber: {
+          contains: filters.query,
+          mode: "insensitive",
+        },
+      },
+      {
+        tags: {
+          has: filters.query,
+        },
+      },
     ];
+  }
+
+  if (filters.status) {
+    where.status = filters.status;
+  }
+
+  if (filters.recordType) {
+    where.recordType = { equals: filters.recordType, mode: "insensitive" };
+  }
+
+  if (filters.classification) {
+    where.classification = { equals: filters.classification, mode: "insensitive" };
+  }
+
+  if (filters.department) {
+    where.department = { equals: filters.department, mode: "insensitive" };
+  }
+
+  if (filters.documentNumber) {
+    where.documentNumber = { contains: filters.documentNumber, mode: "insensitive" };
+  }
+
+  if (filters.tag) {
+    where.tags = { has: filters.tag };
+  }
+
+  if (filters.cid || filters.checksumSha256) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : []),
+      ...(filters.cid ? [{ versions: { some: { cid: filters.cid } } }] : []),
+      ...(filters.checksumSha256
+        ? [{ versions: { some: { checksumSha256: filters.checksumSha256 } } }]
+        : []),
+    ];
+  }
+
+  if (filters.holdState === "held") {
+    where.legalHolds = { some: { releasedAt: null } };
+  } else if (filters.holdState === "clear") {
+    where.legalHolds = { none: { releasedAt: null } };
+  }
+
+  if (filters.retentionState === "assigned") {
+    where.retentionPolicyId = { not: null };
+  } else if (filters.retentionState === "unassigned") {
+    where.retentionPolicyId = null;
+  } else if (filters.retentionState === "due") {
+    where.retentionExpiresAt = { lte: new Date() };
+    where.status = "ARCHIVED";
+  }
+
+  const effectiveFrom = parseDate(filters.effectiveFrom);
+  const effectiveTo = parseDate(filters.effectiveTo);
+  const expiryFrom = parseDate(filters.expiryFrom);
+  const expiryTo = parseDate(filters.expiryTo);
+
+  if (effectiveFrom || effectiveTo) {
+    where.effectiveDate = {
+      ...(effectiveFrom ? { gte: effectiveFrom } : {}),
+      ...(effectiveTo ? { lte: effectiveTo } : {}),
+    };
+  }
+
+  if (expiryFrom || expiryTo) {
+    where.expiryDate = {
+      ...(expiryFrom ? { gte: expiryFrom } : {}),
+      ...(expiryTo ? { lte: expiryTo } : {}),
+    };
   }
 
   const records = await prisma.record.findMany({
@@ -830,6 +1014,13 @@ type CreateRecordInput = {
   currentUser: CurrentUser;
   title: string;
   description?: string | null;
+  recordType?: string | null;
+  classification?: string | null;
+  department?: string | null;
+  documentNumber?: string | null;
+  tags?: string | null;
+  effectiveDate?: string | null;
+  expiryDate?: string | null;
   file: File;
   requestMetadata: RequestMetadata;
 };
@@ -838,9 +1029,17 @@ export async function createRecordWithInitialVersion({
   currentUser,
   title,
   description,
+  recordType,
+  classification,
+  department,
+  documentNumber,
+  tags,
+  effectiveDate,
+  expiryDate,
   file,
   requestMetadata,
 }: CreateRecordInput) {
+  const checksumSha256 = await calculateFileChecksumSha256(file);
   const uploaded = await getPinataClient().upload.file(file);
   const cid = uploaded.IpfsHash;
 
@@ -849,6 +1048,13 @@ export async function createRecordWithInitialVersion({
       data: {
         title,
         description: description?.trim() || null,
+        recordType: normalizeOptionalText(recordType),
+        classification: normalizeOptionalText(classification),
+        department: normalizeOptionalText(department),
+        documentNumber: normalizeOptionalText(documentNumber),
+        tags: parseTags(tags),
+        effectiveDate: parseDate(effectiveDate),
+        expiryDate: parseDate(expiryDate),
         status: "DRAFT",
         userId: currentUser.id,
         organizationId: currentUser.organizationId,
@@ -861,6 +1067,7 @@ export async function createRecordWithInitialVersion({
         recordId: record.id,
         versionNumber: 1,
         cid,
+        checksumSha256,
         originalFilename: file.name,
         fileSize: Number(file.size),
         mimeType: file.type || null,
@@ -881,6 +1088,11 @@ export async function createRecordWithInitialVersion({
     targetId: createdRecord.id,
     metadata: {
       title: createdRecord.title,
+      recordType: createdRecord.recordType,
+      classification: createdRecord.classification,
+      department: createdRecord.department,
+      documentNumber: createdRecord.documentNumber,
+      tags: createdRecord.tags,
       versionCount: 1,
       status: createdRecord.status,
     },
@@ -898,6 +1110,7 @@ export async function createRecordWithInitialVersion({
       recordId: createdRecord.id,
       versionNumber: firstVersion.versionNumber,
       cid: firstVersion.cid,
+      checksumSha256: firstVersion.checksumSha256,
       originalFilename: firstVersion.originalFilename,
     },
     ...requestMetadata,
@@ -919,6 +1132,7 @@ export async function appendRecordVersion({
   file,
   requestMetadata,
 }: AppendVersionInput) {
+  const checksumSha256 = await calculateFileChecksumSha256(file);
   const uploaded = await getPinataClient().upload.file(file);
   const cid = uploaded.IpfsHash;
 
@@ -960,6 +1174,7 @@ export async function appendRecordVersion({
         recordId: record.id,
         versionNumber: nextVersionNumber,
         cid,
+        checksumSha256,
         originalFilename: file.name,
         fileSize: Number(file.size),
         mimeType: file.type || null,
@@ -995,6 +1210,7 @@ export async function appendRecordVersion({
       recordId: result.id,
       versionNumber: latestVersion.versionNumber,
       cid: latestVersion.cid,
+      checksumSha256: latestVersion.checksumSha256,
       originalFilename: latestVersion.originalFilename,
     },
     ...requestMetadata,

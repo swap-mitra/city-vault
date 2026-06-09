@@ -22,6 +22,8 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
   --space-3xl: 4rem;
+  --font-display: Haettenschweiler, "Arial Narrow", "Franklin Gothic Condensed", sans-serif;
+  --font-body: Aptos, "Segoe UI", Verdana, sans-serif;
   color-scheme: dark;
 }
 
